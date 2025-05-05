@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>My Rankings</title>
+  <title>Tier List</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -13,98 +13,81 @@
     h1 {
       color: #ff7f50;
     }
-    .filters {
-      margin-bottom: 20px;
-    }
-    .filter-select {
-      background-color: #333;
-      border: 1px solid #fff;
-      padding: 10px;
-      font-size: 16px;
-      color: #fff;
-    }
-    .rankings-container {
+    .tier-list-container {
       display: flex;
       flex-wrap: wrap;
       gap: 20px;
     }
-    .ranking-item {
+    .album {
       width: 150px;
       text-align: center;
-      background-color: #333;
-      border-radius: 8px;
-      padding: 10px;
+      cursor: pointer;
     }
-    .ranking-item img {
+    .album img {
       width: 100%;
       border-radius: 8px;
     }
-    .rating {
-      color: #ff7f50;
-      font-size: 18px;
+    .tier-select {
+      margin-bottom: 20px;
+    }
+    .tier {
+      width: 80px;
+      height: 80px;
+      background-color: #333;
+      border-radius: 8px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      color: #fff;
     }
   </style>
 </head>
 <body>
-  <h1>My Rankings</h1>
-  <div class="filters">
-    <label for="rankingFilter" style="color: #fff;">Filter by: </label>
-    <select id="rankingFilter" class="filter-select">
-      <option value="albums">Rated Albums</option>
-      <option value="songs">Rated Songs</option>
+  <h1>Create Your Tier List</h1>
+  <div class="tier-select">
+    <select id="tierSelect">
+      <option value="albums">Rank Albums</option>
+      <option value="albumSongs">Rank Album Songs</option>
+      <option value="allSongs">Rank All Songs</option>
     </select>
   </div>
-  <div class="rankings-container" id="rankingsContainer"></div>
+  <div class="tier-list-container" id="tierListContainer"></div>
 
   <script>
-    const rankingsContainer = document.getElementById('rankingsContainer');
-    const rankingFilter = document.getElementById('rankingFilter');
-    
-    // Get all ranked albums and songs from localStorage
-    const getRankings = () => {
-      const ratedAlbums = Object.keys(localStorage).filter(key => key.startsWith("album_"));
-      const ratedSongs = Object.keys(localStorage).filter(key => key.startsWith("song_"));
-      return { ratedAlbums, ratedSongs };
-    };
+    const artistData = JSON.parse(localStorage.getItem('selectedArtist'));
 
-    const displayRankings = (filterType) => {
-      const { ratedAlbums, ratedSongs } = getRankings();
-      rankingsContainer.innerHTML = '';
-      
-      if (filterType === "albums") {
-        ratedAlbums.forEach(albumKey => {
-          const albumData = JSON.parse(localStorage.getItem(albumKey));
-          const albumDiv = document.createElement('div');
-          albumDiv.classList.add('ranking-item');
-          albumDiv.innerHTML = `
-            <img src="${albumData.artworkUrl100}" alt="${albumData.collectionName}">
-            <div>${albumData.collectionName}</div>
-            <div class="rating">${albumData.rating} / 10</div>
-          `;
-          rankingsContainer.appendChild(albumDiv);
-        });
-      } else if (filterType === "songs") {
-        ratedSongs.forEach(songKey => {
-          const songData = JSON.parse(localStorage.getItem(songKey));
-          const songDiv = document.createElement('div');
-          songDiv.classList.add('ranking-item');
-          songDiv.innerHTML = `
-            <img src="${songData.albumArtworkUrl}" alt="${songData.songName}">
-            <div>${songData.songName}</div>
-            <div class="rating">${songData.rating} / 10</div>
-          `;
-          rankingsContainer.appendChild(songDiv);
-        });
-      }
-    };
+    if (!artistData) {
+      alert("No artist data found.");
+      window.location.href = "index.html";
+    }
 
-    // Event listener to filter rankings
-    rankingFilter.addEventListener('change', () => {
-      displayRankings(rankingFilter.value);
-    });
+    async function getAlbums() {
+      const artistId = artistData.artistId;
+      const response = await fetch(`https://itunes.apple.com/lookup?id=${artistId}&entity=album&limit=200`);
+      const data = await response.json();
+      const albums = data.results.filter(item =>
+        item.wrapperType === "collection" &&
+        item.collectionType === "Album"
+      );
 
-    // Display initial rankings based on the default filter (albums)
-    displayRankings(rankingFilter.value);
+      const container = document.getElementById("tierListContainer");
+      albums.forEach(album => {
+        const div = document.createElement("div");
+        div.classList.add("album");
+        div.onclick = () => {
+          alert(`Album: ${album.collectionName}`);
+        };
+
+        div.innerHTML = `
+          <img src="${album.artworkUrl100.replace("100x100bb", "150x150bb")}" title="${album.collectionName}">
+          <div>${album.collectionName}</div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    getAlbums();
   </script>
 </body>
 </html>
