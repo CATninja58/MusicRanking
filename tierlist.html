@@ -1,138 +1,105 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Album Tier List</title>
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; }
-    #searchSection { margin-bottom: 20px; }
-    input { padding: 8px; width: 300px; }
-    button { padding: 8px; }
-    .tier-row {
-      display: flex;
-      align-items: center;
-      margin: 10px 0;
-      border: 2px solid #ccc;
-      min-height: 120px;
-      padding: 10px;
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background-color: #f4f4f4;
     }
-    .tier-label {
-      width: 50px;
-      font-weight: bold;
-      margin-right: 10px;
+    h1 {
+      margin-bottom: 20px;
+    }
+    .albums {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
     }
     .album {
-      margin: 5px;
-      cursor: grab;
+      background-color: white;
+      padding: 10px;
+      border-radius: 10px;
+      width: 180px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      text-align: center;
     }
     .album img {
-      height: 100px;
+      width: 100%;
       border-radius: 8px;
+    }
+    .album h3 {
+      font-size: 16px;
+      margin: 10px 0 5px;
+    }
+    .album p {
+      font-size: 14px;
+      color: #666;
+      margin: 0;
     }
   </style>
 </head>
 <body>
-  <div id="searchSection">
-    <input type="text" id="artistInput" placeholder="Search for an artist...">
-    <button onclick="searchArtist()">Search</button>
-  </div>
-
-  <div id="albumList" style="display: flex; flex-wrap: wrap; margin-bottom: 40px;"></div>
-
-  <div id="tierList">
-    <div class="tier-row" data-tier="S">
-      <div class="tier-label">S</div>
-    </div>
-    <div class="tier-row" data-tier="A">
-      <div class="tier-label">A</div>
-    </div>
-    <div class="tier-row" data-tier="B">
-      <div class="tier-label">B</div>
-    </div>
-    <div class="tier-row" data-tier="C">
-      <div class="tier-label">C</div>
-    </div>
-    <div class="tier-row" data-tier="D">
-      <div class="tier-label">D</div>
-    </div>
-  </div>
-
-  <button onclick="saveTierList()">💾 Save Tier List</button>
+  <h1 id="title">Loading artist...</h1>
+  <div class="albums" id="albumList"></div>
 
   <script>
-    let currentAlbums = [];
+    // Helper to get query string value
+    function getQueryParam(param) {
+      const params = new URLSearchParams(window.location.search);
+      return params.get(param);
+    }
 
-    async function searchArtist() {
-      const artistName = document.getElementById('artistInput').value;
-      const url = `https://itunes.apple.com/search?term=${encodeURIComponent(artistName)}&entity=album&limit=200`;
-      const response = await fetch(url);
+    // Main fetch function
+    async function loadAlbums(artistName) {
+      document.getElementById("title").textContent = `${artistName} – Albums`;
+
+      const response = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(artistName)}&entity=album&limit=200`);
       const data = await response.json();
-      
-      const albums = deduplicateAlbums(data.results);
-      currentAlbums = albums;
-      renderAlbums(albums);
-    }
 
-    function deduplicateAlbums(results) {
+      const albums = data.results
+        .filter(item => item.collectionType === "Album")
+        .map(album => ({
+          name: album.collectionName,
+          releaseDate: album.releaseDate,
+          cover: album.artworkUrl100.replace("100x100bb", "300x300bb"),
+        }));
+
+      // Remove duplicates
+      const uniqueAlbums = [];
       const seen = new Set();
-      return results.filter(album => {
-        if (seen.has(album.collectionName)) return false;
-        seen.add(album.collectionName);
-        return true;
-      }).sort((a, b) => new Date(a.releaseDate) - new Date(b.releaseDate));
-    }
+      for (const album of albums) {
+        if (!seen.has(album.name)) {
+          uniqueAlbums.push(album);
+          seen.add(album.name);
+        }
+      }
 
-    function renderAlbums(albums) {
-      const container = document.getElementById('albumList');
-      container.innerHTML = '';
-      albums.forEach(album => {
-        const div = document.createElement('div');
-        div.className = 'album';
-        div.draggable = true;
-        div.dataset.id = album.collectionId;
-        div.innerHTML = `<img src="${album.artworkUrl100}" title="${album.collectionName}">`;
-        div.addEventListener('dragstart', e => {
-          e.dataTransfer.setData('text/plain', album.collectionId);
-        });
+      // Sort by release date
+      uniqueAlbums.sort((a, b) => new Date(a.releaseDate) - new Date(b.releaseDate));
+
+      // Render albums
+      const container = document.getElementById("albumList");
+      container.innerHTML = "";
+      uniqueAlbums.forEach(album => {
+        const div = document.createElement("div");
+        div.className = "album";
+        div.innerHTML = `
+          <img src="${album.cover}" alt="${album.name}">
+          <h3>${album.name}</h3>
+          <p>${new Date(album.releaseDate).getFullYear()}</p>
+        `;
         container.appendChild(div);
       });
     }
 
-    document.querySelectorAll('.tier-row').forEach(row => {
-      row.addEventListener('dragover', e => e.preventDefault());
-      row.addEventListener('drop', e => {
-        e.preventDefault();
-        const albumId = e.dataTransfer.getData('text/plain');
-        const album = currentAlbums.find(a => a.collectionId == albumId);
-        if (album) {
-          const existing = row.querySelector(`[data-id='${albumId}']`);
-          if (existing) return;
-          const div = document.createElement('div');
-          div.className = 'album';
-          div.dataset.id = album.collectionId;
-          div.innerHTML = `<img src="${album.artworkUrl100}" title="${album.collectionName}">`;
-          div.draggable = true;
-          div.addEventListener('dragstart', e => {
-            e.dataTransfer.setData('text/plain', album.collectionId);
-          });
-          row.appendChild(div);
-        }
-      });
-    });
-
-    function saveTierList() {
-      const result = {};
-      document.querySelectorAll('.tier-row').forEach(row => {
-        const tier = row.dataset.tier;
-        result[tier] = [];
-        row.querySelectorAll('.album').forEach(albumDiv => {
-          const albumId = albumDiv.dataset.id;
-          const album = currentAlbums.find(a => a.collectionId == albumId);
-          if (album) result[tier].push(album.collectionName);
-        });
-      });
-      localStorage.setItem('tierList', JSON.stringify(result));
-      alert('Tier list saved!');
+    const artist = getQueryParam("artist");
+    if (artist) {
+      loadAlbums(artist);
+    } else {
+      document.getElementById("title").textContent = "No artist specified in the URL.";
     }
   </script>
 </body>
