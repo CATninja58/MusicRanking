@@ -1,110 +1,80 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>My Rankings</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #121212;
-      color: #fff;
-      padding: 20px;
-    }
-    h1 {
-      color: #ff7f50;
-    }
-    .filters {
-      margin-bottom: 20px;
-    }
-    .filter-select {
-      background-color: #333;
-      border: 1px solid #fff;
-      padding: 10px;
-      font-size: 16px;
-      color: #fff;
-    }
-    .rankings-container {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 20px;
-    }
-    .ranking-item {
-      width: 150px;
-      text-align: center;
-      background-color: #333;
-      border-radius: 8px;
-      padding: 10px;
-    }
-    .ranking-item img {
-      width: 100%;
-      border-radius: 8px;
-    }
-    .rating {
-      color: #ff7f50;
-      font-size: 18px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Rankings</title>
+    <style>
+        /* Basic styling */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+        }
+        .rankings {
+            display: flex;
+            flex-wrap: wrap;
+        }
+        .ranking {
+            width: 200px;
+            margin: 10px;
+            text-align: center;
+        }
+        .ranking img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+        .ranking h3 {
+            margin-top: 10px;
+        }
+    </style>
 </head>
 <body>
-  <h1>My Rankings</h1>
-  <div class="filters">
-    <label for="rankingFilter" style="color: #fff;">Filter by: </label>
-    <select id="rankingFilter" class="filter-select">
-      <option value="albums">Rated Albums</option>
-      <option value="songs">Rated Songs</option>
-    </select>
-  </div>
-  <div class="rankings-container" id="rankingsContainer"></div>
+    <h1>My Rankings</h1>
 
-  <script>
-    const rankingsContainer = document.getElementById('rankingsContainer');
-    const rankingFilter = document.getElementById('rankingFilter');
-    
-    // Get all ranked albums and songs from localStorage
-    const getRankings = () => {
-      const ratedAlbums = Object.keys(localStorage).filter(key => key.startsWith("album_"));
-      const ratedSongs = Object.keys(localStorage).filter(key => key.startsWith("song_"));
-      return { ratedAlbums, ratedSongs };
-    };
+    <h2>Rated Albums</h2>
+    <div id="ratedAlbums" class="rankings"></div>
 
-    const displayRankings = (filterType) => {
-      const { ratedAlbums, ratedSongs } = getRankings();
-      rankingsContainer.innerHTML = '';
-      
-      if (filterType === "albums") {
-        ratedAlbums.forEach(albumKey => {
-          const albumData = JSON.parse(localStorage.getItem(albumKey));
-          const albumDiv = document.createElement('div');
-          albumDiv.classList.add('ranking-item');
-          albumDiv.innerHTML = `
-            <img src="${albumData.artworkUrl100}" alt="${albumData.collectionName}">
-            <div>${albumData.collectionName}</div>
-            <div class="rating">${albumData.rating} / 10</div>
-          `;
-          rankingsContainer.appendChild(albumDiv);
+    <h2>Rated Songs</h2>
+    <div id="ratedSongs" class="rankings"></div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const artistData = JSON.parse(localStorage.getItem("currentArtistData"));
+            if (!artistData) {
+                alert("No artist data found. Please go back and select an artist.");
+                return;
+            }
+
+            const ratedAlbumsContainer = document.getElementById("ratedAlbums");
+            const ratedSongsContainer = document.getElementById("ratedSongs");
+
+            // Load rated albums
+            const ratingsKey = `ratings_${artistData.id}`;
+            const ratings = JSON.parse(localStorage.getItem(ratingsKey) || "{}");
+
+            Object.keys(ratings).forEach(albumName => {
+                const albumData = ratings[albumName];
+                const albumDiv = document.createElement("div");
+                albumDiv.classList.add("ranking");
+                albumDiv.innerHTML = `<img src="${albumData.cover}" alt="${albumName}" />
+                                      <h3>${albumName}</h3>
+                                      <p>Rating: ${albumData.rating}</p>`;
+                ratedAlbumsContainer.appendChild(albumDiv);
+
+                // Load rated songs
+                Object.keys(albumData.songs).forEach(songName => {
+                    const songData = albumData.songs[songName];
+                    const songDiv = document.createElement("div");
+                    songDiv.classList.add("ranking");
+                    songDiv.innerHTML = `<img src="${songData.album.cover}" alt="${songName}" />
+                                         <h3>${songName}</h3>
+                                         <p>Rating: ${songData.rating}</p>`;
+                    ratedSongsContainer.appendChild(songDiv);
+                });
+            });
         });
-      } else if (filterType === "songs") {
-        ratedSongs.forEach(songKey => {
-          const songData = JSON.parse(localStorage.getItem(songKey));
-          const songDiv = document.createElement('div');
-          songDiv.classList.add('ranking-item');
-          songDiv.innerHTML = `
-            <img src="${songData.albumArtworkUrl}" alt="${songData.songName}">
-            <div>${songData.songName}</div>
-            <div class="rating">${songData.rating} / 10</div>
-          `;
-          rankingsContainer.appendChild(songDiv);
-        });
-      }
-    };
-
-    // Event listener to filter rankings
-    rankingFilter.addEventListener('change', () => {
-      displayRankings(rankingFilter.value);
-    });
-
-    // Display initial rankings based on the default filter (albums)
-    displayRankings(rankingFilter.value);
-  </script>
+    </script>
 </body>
 </html>
