@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Search for an Artist</title>
   <style>
     body {
@@ -11,11 +11,9 @@
       background-color: #121212;
       color: #f4f4f4;
     }
-
     h1 {
       margin-top: 20px;
     }
-
     input {
       padding: 10px;
       font-size: 16px;
@@ -25,41 +23,26 @@
       border: none;
       margin-bottom: 20px;
     }
-
     .artist-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 15px;
       padding: 20px;
-      max-width: 900px;
+      max-width: 800px;
       margin: auto;
     }
-
     .artist-card {
       background-color: #1c1c1c;
       padding: 15px;
       border-radius: 10px;
       text-align: center;
       cursor: pointer;
-      transition: background-color 0.2s ease;
     }
-
-    .artist-card:hover {
-      background-color: #2a2a2a;
-    }
-
     .artist-card img {
       width: 100px;
       height: 100px;
       border-radius: 50%;
       margin-bottom: 10px;
-      object-fit: cover;
-    }
-
-    .artist-card p {
-      margin: 0;
-      font-size: 14px;
-      font-weight: bold;
     }
   </style>
 </head>
@@ -70,48 +53,32 @@
 
   <script>
     async function searchArtist() {
-      const query = document.getElementById("artistSearch").value.trim();
+      const query = document.getElementById("artistSearch").value;
       const resultsDiv = document.getElementById("artistResults");
-      resultsDiv.innerHTML = "";
+      resultsDiv.innerHTML = ""; // Clear previous results
 
-      if (query.length < 2) return;
+      if (query.length < 2) return; // Don't search for very short queries
 
-      // Instead of searching for 'musicArtist', we search for albums and dedupe artists
-      const url = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=album&limit=30`;
+      const url = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=musicArtist&limit=12`;
       const response = await fetch(url);
       const data = await response.json();
 
-      const seen = new Set();
-
-      data.results.forEach(result => {
-        const artistName = result.artistName;
-        const artistId = result.artistId;
-
-        if (!seen.has(artistId)) {
-          seen.add(artistId);
-
-          const artistCard = document.createElement("div");
-          artistCard.classList.add("artist-card");
-
-          // Use the album artwork as a stand-in for artist pic
-          const imgUrl = result.artworkUrl100.replace("100x100bb", "200x200bb");
-
-          artistCard.innerHTML = `
-            <img src="${imgUrl}" alt="${artistName}" />
-            <p>${artistName}</p>
-          `;
-
-          artistCard.onclick = () => {
-            window.location.href = `artist.html?artist=${encodeURIComponent(artistName)}`;
-          };
-
-          resultsDiv.appendChild(artistCard);
-        }
+      // Loop through the artist results and display them
+      data.results.forEach(artist => {
+        const artistCard = document.createElement("div");
+        artistCard.classList.add("artist-card");
+        artistCard.innerHTML = `
+          <img src="${artist.artworkUrl100}" alt="${artist.artistName}">
+          <p>${artist.artistName}</p>
+        `;
+        
+        // Add click event to navigate to the artist page
+        artistCard.onclick = () => {
+          window.location.href = `artistPage.html?artist=${encodeURIComponent(artist.artistName)}`;
+        };
+        
+        resultsDiv.appendChild(artistCard);
       });
-
-      if (seen.size === 0) {
-        resultsDiv.innerHTML = "<p>No artists found. Try a different name.</p>";
-      }
     }
   </script>
 </body>
