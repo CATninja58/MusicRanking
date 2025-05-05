@@ -7,93 +7,185 @@
   <style>
     body {
       font-family: Arial, sans-serif;
+      background: #f2f2f2;
+      margin: 0;
       padding: 20px;
-      background-color: #f4f4f4;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
+
     h1 {
       margin-bottom: 20px;
     }
-    .albums {
+
+    .tier-list {
       display: flex;
-      flex-wrap: wrap;
-      gap: 20px;
+      flex-direction: column;
+      gap: 15px;
+      width: 100%;
+      max-width: 900px;
     }
-    .album {
-      background-color: white;
+
+    .tier {
+      display: flex;
+      align-items: center;
+      background: #ddd;
       padding: 10px;
       border-radius: 10px;
-      width: 180px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-      text-align: center;
     }
+
+    .tier-label {
+      width: 50px;
+      font-weight: bold;
+      font-size: 18px;
+      margin-right: 10px;
+    }
+
+    .tier-dropzone {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      min-height: 80px;
+      flex: 1;
+      padding: 5px;
+      background: #fff;
+      border-radius: 8px;
+    }
+
+    .album-pool {
+      margin-top: 30px;
+      background: #eaeaea;
+      padding: 10px;
+      border-radius: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      max-width: 900px;
+      justify-content: center;
+    }
+
+    .album {
+      width: 100px;
+      cursor: grab;
+    }
+
     .album img {
       width: 100%;
       border-radius: 8px;
     }
-    .album h3 {
-      font-size: 16px;
-      margin: 10px 0 5px;
-    }
-    .album p {
-      font-size: 14px;
-      color: #666;
-      margin: 0;
+
+    .album.dragging {
+      opacity: 0.5;
     }
   </style>
 </head>
 <body>
   <h1 id="title">Loading artist...</h1>
-  <div class="albums" id="albumList"></div>
+
+  <div class="tier-list" id="tierList">
+    <!-- Tier rows added by JS -->
+  </div>
+
+  <h2>Albums</h2>
+  <div class="album-pool" id="albumPool">
+    <!-- Album covers added here -->
+  </div>
 
   <script>
-    // Helper to get query string value
+    const tiers = ["S", "A", "B", "C", "D"];
+
     function getQueryParam(param) {
       const params = new URLSearchParams(window.location.search);
       return params.get(param);
     }
 
-    // Main fetch function
+    function createTierRow(label) {
+      const tier = document.createElement("div");
+      tier.className = "tier";
+
+      const labelEl = document.createElement("div");
+      labelEl.className = "tier-label";
+      labelEl.textContent = label;
+
+      const dropzone = document.createElement("div");
+      dropzone.className = "tier-dropzone";
+      dropzone.dataset.tier = label;
+
+      dropzone.addEventListener("dragover", e => e.preventDefault());
+      dropzone.addEventListener("drop", e => {
+        e.preventDefault();
+        const id = e.dataTransfer.getData("text/plain");
+        const album = document.getElementById(id);
+        if (album) dropzone.appendChild(album);
+      });
+
+      tier.appendChild(labelEl);
+      tier.appendChild(dropzone);
+      return tier;
+    }
+
     async function loadAlbums(artistName) {
-      document.getElementById("title").textContent = `${artistName} – Albums`;
+      document.getElementById("title").textContent = `${artistName} – Tier List`;
 
       const response = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(artistName)}&entity=album&limit=200`);
       const data = await response.json();
 
       const albums = data.results
-        .filter(item => item.collectionType === "Album")
+        .filter(item =>
+          item.collectionType === "Album" &&
+          !item.collectionName.toLowerCase().includes("single") &&
+          !item.collectionName.toLowerCase().includes("ep") &&
+          !item.collectionName.toLowerCase().includes("deluxe") &&
+          !item.collectionName.toLowerCase().includes("instrumental") &&
+          !item.collectionName.toLowerCase().includes("karaoke")
+        )
         .map(album => ({
           name: album.collectionName,
           releaseDate: album.releaseDate,
-          cover: album.artworkUrl100.replace("100x100bb", "300x300bb"),
+          cover: album.artworkUrl100.replace("100x100bb", "150x150bb"),
         }));
 
-      // Remove duplicates
-      const uniqueAlbums = [];
+      const unique = [];
       const seen = new Set();
       for (const album of albums) {
         if (!seen.has(album.name)) {
-          uniqueAlbums.push(album);
+          unique.push(album);
           seen.add(album.name);
         }
       }
 
       // Sort by release date
-      uniqueAlbums.sort((a, b) => new Date(a.releaseDate) - new Date(b.releaseDate));
+      unique.sort((a, b) => new Date(a.releaseDate) - new Date(b.releaseDate));
 
-      // Render albums
-      const container = document.getElementById("albumList");
-      container.innerHTML = "";
-      uniqueAlbums.forEach(album => {
+      const pool = document.getElementById("albumPool");
+      pool.innerHTML = "";
+
+      unique.forEach((album, index) => {
         const div = document.createElement("div");
         div.className = "album";
-        div.innerHTML = `
-          <img src="${album.cover}" alt="${album.name}">
-          <h3>${album.name}</h3>
-          <p>${new Date(album.releaseDate).getFullYear()}</p>
-        `;
-        container.appendChild(div);
+        div.draggable = true;
+        div.id = `album-${index}`;
+        div.innerHTML = `<img src="${album.cover}" alt="${album.name}" title="${album.name}">`;
+
+        div.addEventListener("dragstart", e => {
+          div.classList.add("dragging");
+          e.dataTransfer.setData("text/plain", div.id);
+        });
+
+        div.addEventListener("dragend", () => {
+          div.classList.remove("dragging");
+        });
+
+        pool.appendChild(div);
       });
     }
+
+    // Build tier rows
+    const tierList = document.getElementById("tierList");
+    tiers.forEach(t => {
+      tierList.appendChild(createTierRow(t));
+    });
 
     const artist = getQueryParam("artist");
     if (artist) {
