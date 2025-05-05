@@ -1,114 +1,110 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>View My Rankings</title>
-  <link rel="stylesheet" href="styles.css" />
+  <meta charset="UTF-8">
+  <title>My Rankings</title>
   <style>
-    body { font-family: Arial; padding: 20px; background: #f7f7f7; }
-    h1 { margin-bottom: 10px; }
-    select, button { margin: 10px 0; }
-    .album, .song {
-      display: flex;
-      align-items: center;
-      margin: 8px 0;
-      background: #fff;
-      border-radius: 6px;
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #121212;
+      color: #fff;
+      padding: 20px;
+    }
+    h1 {
+      color: #ff7f50;
+    }
+    .filters {
+      margin-bottom: 20px;
+    }
+    .filter-select {
+      background-color: #333;
+      border: 1px solid #fff;
       padding: 10px;
-      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+      font-size: 16px;
+      color: #fff;
     }
-    .album img, .song img {
-      width: 60px;
-      height: 60px;
-      object-fit: cover;
-      border-radius: 5px;
-      margin-right: 15px;
-    }
-    .ranking-info {
+    .rankings-container {
       display: flex;
-      flex-direction: column;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+    .ranking-item {
+      width: 150px;
+      text-align: center;
+      background-color: #333;
+      border-radius: 8px;
+      padding: 10px;
+    }
+    .ranking-item img {
+      width: 100%;
+      border-radius: 8px;
+    }
+    .rating {
+      color: #ff7f50;
+      font-size: 18px;
     }
   </style>
 </head>
 <body>
   <h1>My Rankings</h1>
-  <select id="rankingCategory">
-    <option value="albums">Album Rankings</option>
-    <option value="songs">Song Rankings</option>
-    <option value="perfectAlbums">Perfect Albums (9–10/10)</option>
-    <option value="perfectSongs">Perfect Songs (9–10/10)</option>
-  </select>
-
-  <button onclick="toggleSort()">Toggle Sort Order</button>
-  <div id="rankingList"></div>
+  <div class="filters">
+    <label for="rankingFilter" style="color: #fff;">Filter by: </label>
+    <select id="rankingFilter" class="filter-select">
+      <option value="albums">Rated Albums</option>
+      <option value="songs">Rated Songs</option>
+    </select>
+  </div>
+  <div class="rankings-container" id="rankingsContainer"></div>
 
   <script>
-    let sortDescending = true;
+    const rankingsContainer = document.getElementById('rankingsContainer');
+    const rankingFilter = document.getElementById('rankingFilter');
+    
+    // Get all ranked albums and songs from localStorage
+    const getRankings = () => {
+      const ratedAlbums = Object.keys(localStorage).filter(key => key.startsWith("album_"));
+      const ratedSongs = Object.keys(localStorage).filter(key => key.startsWith("song_"));
+      return { ratedAlbums, ratedSongs };
+    };
 
-    function toggleSort() {
-      sortDescending = !sortDescending;
-      renderRankings();
-    }
-
-    function renderRankings() {
-      const category = document.getElementById('rankingCategory').value;
-      const container = document.getElementById('rankingList');
-      container.innerHTML = '';
-
-      const rankings = JSON.parse(localStorage.getItem('rankings') || '{}');
-      const albums = rankings.albums || {};
-      const songs = rankings.songs || {};
-
-      if (category === 'albums' || category === 'perfectAlbums') {
-        const albumEntries = Object.entries(albums)
-          .filter(([, data]) => category !== 'perfectAlbums' || data.rating >= 9)
-          .sort((a, b) => sortDescending ? b[1].rating - a[1].rating : a[1].rating - b[1].rating);
-
-        albumEntries.forEach(([id, data]) => {
-          const div = document.createElement('div');
-          div.className = 'album';
-          div.innerHTML = `
-            <img src="${data.cover}" alt="${data.name}" />
-            <div class="ranking-info">
-              <strong>${data.name}</strong>
-              <span>Rating: ${data.rating}/10</span>
-            </div>
+    const displayRankings = (filterType) => {
+      const { ratedAlbums, ratedSongs } = getRankings();
+      rankingsContainer.innerHTML = '';
+      
+      if (filterType === "albums") {
+        ratedAlbums.forEach(albumKey => {
+          const albumData = JSON.parse(localStorage.getItem(albumKey));
+          const albumDiv = document.createElement('div');
+          albumDiv.classList.add('ranking-item');
+          albumDiv.innerHTML = `
+            <img src="${albumData.artworkUrl100}" alt="${albumData.collectionName}">
+            <div>${albumData.collectionName}</div>
+            <div class="rating">${albumData.rating} / 10</div>
           `;
-          container.appendChild(div);
+          rankingsContainer.appendChild(albumDiv);
+        });
+      } else if (filterType === "songs") {
+        ratedSongs.forEach(songKey => {
+          const songData = JSON.parse(localStorage.getItem(songKey));
+          const songDiv = document.createElement('div');
+          songDiv.classList.add('ranking-item');
+          songDiv.innerHTML = `
+            <img src="${songData.albumArtworkUrl}" alt="${songData.songName}">
+            <div>${songData.songName}</div>
+            <div class="rating">${songData.rating} / 10</div>
+          `;
+          rankingsContainer.appendChild(songDiv);
         });
       }
+    };
 
-      if (category === 'songs' || category === 'perfectSongs') {
-        const songEntries = Object.entries(songs)
-          .flatMap(([albumName, songList]) =>
-            Object.entries(songList).map(([songTitle, rating]) => ({
-              albumName,
-              songTitle,
-              rating
-            }))
-          )
-          .filter(entry => category !== 'perfectSongs' || entry.rating >= 9)
-          .sort((a, b) => sortDescending ? b.rating - a.rating : a.rating - b.rating);
+    // Event listener to filter rankings
+    rankingFilter.addEventListener('change', () => {
+      displayRankings(rankingFilter.value);
+    });
 
-        songEntries.forEach(({ albumName, songTitle, rating }) => {
-          const div = document.createElement('div');
-          div.className = 'song';
-          div.innerHTML = `
-            <img src="https://via.placeholder.com/60?text=♪" alt="Song" />
-            <div class="ranking-info">
-              <strong>${songTitle}</strong>
-              <span>Album: ${albumName}</span>
-              <span>Rating: ${rating}/10</span>
-            </div>
-          `;
-          container.appendChild(div);
-        });
-      }
-    }
-
-    document.getElementById('rankingCategory').addEventListener('change', renderRankings);
-    renderRankings();
+    // Display initial rankings based on the default filter (albums)
+    displayRankings(rankingFilter.value);
   </script>
 </body>
 </html>
