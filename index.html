@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Music Ranker - Search</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <h1>🎵 Search for an Artist</h1>
+  <input
+    type="text"
+    id="artistSearch"
+    placeholder="Enter artist name..."
+    oninput="searchArtist()"
+    autocomplete="off"
+  />
+  <div class="artist-grid" id="artistResults"></div>
+
+  <script>
+    async function searchArtist() {
+      const query = document.getElementById("artistSearch").value.trim();
+      const resultsDiv = document.getElementById("artistResults");
+      resultsDiv.innerHTML = ""; // Clear previous results
+
+      if (query.length < 2) return;
+
+      const url = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=musicArtist&limit=12`;
+      const response = await fetch(url);
+      const data = await response.json();
+
+      data.results.forEach(artist => {
+        const artistCard = document.createElement("div");
+        artistCard.classList.add("artist-card");
+        artistCard.innerHTML = `
+          <img src="${artist.artworkUrl100.replace('100x100', '200x200')}" alt="${artist.artistName}" />
+          <p>${artist.artistName}</p>
+        `;
+        artistCard.onclick = () => {
+          const artistName = encodeURIComponent(artist.artistName);
+          const artistId = artist.artistId;
+          window.location.href = `artist.html?name=${artistName}&id=${artistId}`;
+        };
+        resultsDiv.appendChild(artistCard);
+      });
+    }
+  </script>
+</body>
+</html>
