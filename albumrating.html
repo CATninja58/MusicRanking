@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rate Albums & Songs</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #121212;
+      color: #f4f4f4;
+      text-align: center;
+    }
+    .album-container {
+      display: flex;
+      flex-direction: column;
+      margin: 30px;
+    }
+    .album-card {
+      background-color: #1c1c1c;
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .song-container {
+      display: flex;
+      flex-direction: column;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1 id="artistName">Loading...</h1>
+  <div id="albumList" class="album-container"></div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const artistName = params.get("artist");
+    document.getElementById("artistName").innerText = artistName;
+
+    async function fetchAlbums() {
+      const url = `https://itunes.apple.com/search?term=${encodeURIComponent(artistName)}&entity=album&limit=12`;
+      const response = await fetch(url);
+      const data = await response.json();
+      const albums = data.results;
+
+      const albumList = document.getElementById("albumList");
+      albums.forEach(album => {
+        const albumCard = document.createElement("div");
+        albumCard.classList.add("album-card");
+        albumCard.innerHTML = `
+          <img src="${album.artworkUrl100}" alt="${album.collectionName}">
+          <h2>${album.collectionName}</h2>
+          <button onclick="rateAlbum('${album.collectionId}')">Rate this Album</button>
+        `;
+        albumList.appendChild(albumCard);
+      });
+    }
+
+    async function rateAlbum(albumId) {
+      const url = `https://itunes.apple.com/lookup?id=${albumId}&entity=song`;
+      const response = await fetch(url);
+      const data = await response.json();
+      const album = data.results[0];
+      const songs = data.results.slice(1);
+
+      const albumContainer = document.createElement("div");
+      albumContainer.classList.add("album-container");
+
+      albumContainer.innerHTML = `
+        <h2>${album.collectionName}</h2>
+        <label for="albumRating">Rate this Album (1-10):</label>
+        <input type="number" id="albumRating" min="1" max="10">
+        <div class="song-container">
+          <h3>Songs</h3>
+        </div>
+      `;
+      document.body.appendChild(albumContainer);
+
+      const songContainer = albumContainer.querySelector(".song-container");
+      songs.forEach(song => {
+        const songDiv = document.createElement("div");
+        songDiv.innerHTML = `
+          <p>${song.trackName}</p>
+          <label for="songRating-${song.trackId}">Rate this Song (1-10):</label>
+          <input type="number" id="songRating-${song.trackId}" min="1" max="10">
+        `;
+        songContainer.appendChild(songDiv);
+      });
+    }
+
+    fetchAlbums();
+  </script>
+
+</body>
+</html>
