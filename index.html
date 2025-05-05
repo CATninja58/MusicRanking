@@ -1,18 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Search for an Artist</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      text-align: center;
       background-color: #121212;
-      color: #f4f4f4;
-    }
-    h1 {
-      margin-top: 20px;
+      color: #fff;
+      text-align: center;
+      padding: 20px;
     }
     input {
       padding: 10px;
@@ -25,66 +23,69 @@
     }
     .artist-grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 15px;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 20px;
       padding: 20px;
-      max-width: 800px;
+      max-width: 900px;
       margin: auto;
     }
     .artist-card {
-      background-color: #1c1c1c;
+      background-color: #1e1e1e;
       padding: 15px;
       border-radius: 10px;
-      text-align: center;
       cursor: pointer;
     }
     .artist-card img {
       width: 100px;
       height: 100px;
       border-radius: 50%;
+      object-fit: cover;
       margin-bottom: 10px;
     }
   </style>
 </head>
 <body>
   <h1>Search for an Artist</h1>
-  <input type="text" id="artistSearch" placeholder="Enter artist name..." oninput="searchArtist()">
+  <input type="text" id="artistSearch" placeholder="Enter artist name..." oninput="searchArtist()"/>
   <div class="artist-grid" id="artistResults"></div>
 
   <script>
     async function searchArtist() {
       const query = document.getElementById("artistSearch").value;
       const resultsDiv = document.getElementById("artistResults");
-      resultsDiv.innerHTML = ""; // Clear previous results
+      resultsDiv.innerHTML = "";
 
-      if (query.length < 2) return; // Don't search for very short queries
+      if (query.length < 2) return;
 
-      const url = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=musicArtist&limit=12`;
+      const url = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=album&limit=50`;
       const response = await fetch(url);
       const data = await response.json();
 
       if (!data.results || data.results.length === 0) {
-        resultsDiv.innerHTML = "<p>No artists found. Please try a different name.</p>";
+        resultsDiv.innerHTML = "<p>No results found.</p>";
         return;
       }
 
-      // Loop through the artist results and display them
-      data.results.forEach(artist => {
+      const seenArtists = new Set();
+
+      data.results.forEach(album => {
+        const artistName = album.artistName;
+        const artistId = album.artistId;
+        const artwork = album.artworkUrl100;
+
+        if (seenArtists.has(artistId)) return;
+        seenArtists.add(artistId);
+
         const artistCard = document.createElement("div");
         artistCard.classList.add("artist-card");
 
-        // Ensuring artwork URL is available before using it
-        const imageUrl = artist.artworkUrl100 || 'https://via.placeholder.com/100'; // Placeholder if no image is found
-
         artistCard.innerHTML = `
-          <img src="${imageUrl}" alt="${artist.artistName}">
-          <p>${artist.artistName}</p>
-          <p><strong>Genre:</strong> ${artist.primaryGenreName || 'Unknown'}</p>
+          <img src="${artwork}" alt="${artistName}">
+          <p>${artistName}</p>
         `;
-        
-        // Add click event to navigate to the artist page
+
         artistCard.onclick = () => {
-          window.location.href = `artistPage.html?artist=${encodeURIComponent(artist.artistName)}&id=${artist.artistId}`;
+          window.location.href = `artistPage.html?artist=${encodeURIComponent(artistName)}&id=${artistId}`;
         };
 
         resultsDiv.appendChild(artistCard);
