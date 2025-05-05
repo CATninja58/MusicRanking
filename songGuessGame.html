@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Artist's Song Guesser Game</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* General body styles */
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            background-color: #121212;
+            color: #f4f4f4;
+        }
+
+        h1 {
+            margin-top: 20px;
+            color: #f4f4f4;
+        }
+
+        input {
+            margin-top: 20px;
+            padding: 10px;
+            font-size: 14px;
+            width: 300px;
+            background-color: #1c1c1c;
+            color: #f4f4f4;
+            border: none;
+        }
+
+        .button-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 5px;
+            margin-top: 20px;
+            height: auto;
+        }
+
+        button {
+            width: 250px;
+            height: 50px;
+            font-size: 14px;
+            background-color: #1c1c1c;
+            color: #f4f4f4;
+            border: none;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .green {
+            background-color: #159643;
+        }
+
+        .orange {
+            background-color: #b19600;
+        }
+
+        .grey {
+            background-color: grey;
+        }
+
+        .results-container {
+            width: 80%;
+            margin-top: 40px;
+            padding: 10px;
+            border-top: 2px solid #000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .song-list-wrapper {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+            color: #f4f4f4;
+            text-align: left;
+            word-wrap: break-word;
+        }
+
+        th {
+            font-weight: bold;
+        }
+
+        .footer-text {
+            font-weight: bold;
+            margin-top: 20px;
+            color: #f4f4f4;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .loading i {
+            margin-left: 10px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+
+
+        /* Cog icon styles */
+        .cog-icon {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 1000;
+            color: #f4f4f4;
+            transition: color 0.3s ease;
+        }
+
+        .cog-icon:hover {
+            color: #159643; /* Green on hover */
+        }
+
+        /* Sidebar styles */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: -250px;
+            width: 250px;
+            height: 100%;
+            background-color: #1c1c1c;
+            transition: left 0.3s ease;
+            z-index: 999;
+            padding: 20px;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+            visibility: hidden; /* Hide initially */
+        }
+
+        .sidebar.open {
+            left: 0;
+            visibility: visible; /* Show when open */
+        }
+
+        .sidebar h2 {
+            color: #f4f4f4;
+            margin-bottom: 20px;
+        }
+
+        .toggle-switch {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: #f4f4f4;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #159643;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+    </style>
+</head>
+<body>
+    <i class="fas fa-cog cog-icon" onclick="toggleSidebar()"></i>
+    <div class="sidebar" id="sidebar">
+        <h2>Settings</h2>
+        <div class="toggle-switch">
+            <span>Turn off singles</span>
+            <label class="switch">
+                <input type="checkbox" id="singlesToggle" onchange="toggleSingles()">
+                <span class="slider"></span>
+            </label>
+        </div>
+        <div class="toggle-switch">
+            <span>Turn off skits</span>
+            <label class="switch">
+                <input type="checkbox" id="skitsToggle" onchange="toggleSkits()">
+                <span class="slider"></span>
+            </label>
+        </div>
+        <div class="toggle-switch">
+            <span>Remove songs with no lyrics</span>
+            <label class="switch">
+                <input type="checkbox" id="lyricsToggle" onchange="toggleLyrics()">
+                <span class="slider"></span>
+            </label>
+        </div>
+    </div>
+
+    <h1 id="artistTitle"></h1>
+
+    <div class="loading" id="loadingIndicator">
+        Loading Data <i class="fas fa-spinner"></i>
+    </div>
+
+    <button id="resetButton" onclick="resetGame()">Play Again</button>
+
+    <button id="hintButton" onclick="showHint()">Get a Hint</button>
+    <button id="playButton" onclick="getSongSnippet()">Play a snippet of the song</button>
+    <div id="hintText" style="display:none; font-style: italic; margin-top: 10px;"></div>
+
+    <input type="text" id="songSearch" placeholder="Enter song name" oninput="searchSong()">
+    <div id="searchResults"></div>
+
+    <div id="guessesContainer" class="guess-container" style="margin-top: 40px; margin-bottom: 20px; gap: 20px;">
+        <!-- Guesses will be dynamically added here -->
+    </div>
+
+    <div class="results-container">
+        <div class="footer-text" style="font-size: 16px;">List of songs</div>
+        <div class="song-list-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="min-width: 300px;" onclick="sortTable('Song')">Song <span id="SongSortIndicator"></span></th>
+                        <th style="min-width: 200px;" onclick="sortTable('Album')">Album <span id="AlbumSortIndicator"></span></th>
+                        <th style="min-width: 250px;" onclick="sortTable('Year')">Release <span id="YearSortIndicator"></span></th>
+                        <th style="min-width: 200px;" onclick="sortTable('Length')">Length <span id="LengthSortIndicator"></span></th>
+                        <th style="min-width: 200px;" onclick="sortTable('Artist')">Artist <span id="ArtistSortIndicator"></span></th>
+                        <th style="min-width: 200px;" onclick="sortTable('TrackNum')">TrackNum <span id="TrackNumSortIndicator"></span></th>
+                        <th style="min-width: 200px;" onclick="sortTable('Type')">Type <span id="TypeSortIndicator"></span></th>
+                    </tr>
+                </thead>
+                <tbody id="songList"></tbody>
+            </table>
+        </div>
+    </div>
+    <div class="footer-text">Made by u/CATninja58.</div>
+
+    <script>
+        let guesses = [];
+        let guessCount = 0;
+        let songsData = null;
+        let correctSong = null;
+        let currentSortColumn = null;
+        let sortAscending = true;
+        let songAudio = null;
+        let snippetStartTime = null; // Variable to store the random start time for the current song
+
+        function getArtistFromURL() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get("artist");
+        }
+
+        async function loadSongs() {
+            const isSkitsMode = localStorage.getItem('skitsMode') === 'true';
+            const isSinglesMode = localStorage.getItem('singlesMode') === 'true';
+            const isLyricsMode = localStorage.getItem('lyricsMode') === 'true';
+            const ArtistName = getArtistFromURL();
+            console.log("Extracted Artist Name:", ArtistName);  // Debugging: Logs the artist name
+
+            if (!ArtistName) {
+                document.body.innerHTML = "<h1>Error: No artist selected</h1>";
+                return;
+            }
+
+            const storedData = localStorage.getItem(ArtistName);
+            if (storedData) { //If user has already played with this artist
+                songsData = JSON.parse(storedData);
+            }
+            else { //Otherwise download songs from iTunes API
+                //Start loading indicator
+                document.getElementById('loadingIndicator').style.display = 'flex';
+                songsData = await findDataFromArtist(ArtistName);
+                localStorage.setItem(ArtistName, JSON.stringify(songsData));
+                document.getElementById('loadingIndicator').style.display = 'none';
+            }
+
+            if (isSkitsMode){
+                songsData = songsData.filter(song => {
+                    return !song.Song.toLowerCase().includes("skit") && song.Length >= 60;
+                });
+            }
+            if(isSinglesMode){
+                songsData = songsData.filter(song => {
+                    return !song.Type.toLowerCase().includes("single");
+                });
+            }
+            if(isLyricsMode){
+                songsData = songsData.filter(song => {
+                    if (!song.lyrics) return false;
+                    const lines = song.lyrics.split('\n').filter(line => line.trim() !== "");
+                    // Filter out songs that don't have lyrics
+                    return lines.length > 0;
+                });
+            }
+            correctSong = songsData[Math.floor(Math.random() * songsData.length)];
+            snippetStartTime = Math.floor(Math.random() * Math.max(0, 27));
+            displaySongs();
+            
+            document.getElementById("artistTitle").innerText = `${ArtistName}'s Song Guesser`;  // Fixed here
+            console.log("Finished loading data.");
+            console.log("Correct Song is: " + correctSong.Song);
+            console.log("Song data: ", correctSong);  // Debugging: Logs the correct song data
+            document.getElementById('loadingIndicator').style.display = 'none';
+        }
+
+        function forceArtistDataRedownload() {
+            const ArtistName = getArtistFromURL();
+            localStorage.removeItem(ArtistName);
+            console.log("Force redownload of artist data.");
+            loadSongs();
+        }
+
+        async function findDataFromArtist(Artist) {
+            const searchUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(Artist)}&entity=musicArtist&limit=1`;
+            const searchResponse = await fetch(searchUrl);
+            const searchData = await searchResponse.json();
+
+            if (searchData.resultCount === 0) {
+                console.error("Artist not found.");
+                return [];
+            }
+
+            const artistId = searchData.results[0].artistId;
+            const albumsUrl = `https://itunes.apple.com/lookup?id=${artistId}&entity=album&limit=50`;
+            const albumsResponse = await fetch(albumsUrl);
+            const albumsData = await albumsResponse.json();
+
+            let albums = albumsData.results.filter(item => item.collectionType === "Album");
+
+            let songsList = [];
+
+            for (const album of albums) {
+                const tracksUrl = `https://itunes.apple.com/lookup?id=${album.collectionId}&entity=song`;
+                const tracksResponse = await fetch(tracksUrl);
+                const tracksData = await tracksResponse.json();
+
+                const tracks = tracksData.results
+                    .filter(item => item.wrapperType === "track" && item.previewUrl) // <-- FIXED: filter only songs with audio preview
+                    .map(track => ({
+                        Song: track.trackName.replace(/\s*\(.*?\)\s*/g, '').trim(),
+                        Album: album.collectionName,
+                        Year: new Date(album.releaseDate).getFullYear(),
+                        Length: (track.trackTimeMillis / 1000).toFixed(0),
+                        Artist: track.artistName,
+                        TrackNum: track.trackNumber,
+                        Type: album.collectionType === "Album" ? "Track" : "Single",
+                        audioURL: track.previewUrl
+                    }));
+
+                songsList = songsList.concat(tracks);
+            }
+
+            // Remove duplicate songs
+            const songMap = new Map();
+            songsList.forEach(song => {
+                if (!songMap.has(song.Song)) {
+                    songMap.set(song.Song, song);
+                }
+            });
+
+            return Array.from(songMap.values());
+        }
+
+        function getSongSnippet() {
+            if (songAudio) {
+                songAudio.pause();
+                songAudio.src = "";
+                songAudio = null;
+            }
+
+            console.log("Correct song object:", correctSong);
+            console.log("Audio URL:", correctSong.audioURL);
+
+            if (!correctSong.audioURL) {
+                alert("This song does not have an available audio preview.");
+                return;
+            }
+
+            songAudio = new Audio(correctSong.audioURL);
+            songAudio.currentSong = correctSong.Song;
+
+            songAudio.addEventListener("error", (e) => {
+                console.error("Audio error:", e);
+            });
+
+            songAudio.addEventListener("loadedmetadata", () => {
+                const duration = songAudio.duration;
+                console.log("Duration of the song:", duration, "seconds");
+                songAudio.currentTime = snippetStartTime;
+
+                console.log("Playing snippet from:", snippetStartTime, "seconds");
+
+                songAudio.play().catch(err => {
+                    console.error("Play failed:", err);
+                });
+
+                setTimeout(() => {
+                    songAudio.pause();
+                }, 3000);
+            }, { once: true });
+        }
+
+
+        function sortTable(column) {
+            if (currentSortColumn === column) {
+                sortAscending = !sortAscending; // Toggle sort direction
+            } else {
+                currentSortColumn = column;
+                sortAscending = true; // Default to ascending
+            }
+
+            // Clear all sort indicators
+            document.querySelectorAll("thead th span").forEach(span => span.textContent = "");
+
+            // Set the sort indicator for the current column
+            const indicator = document.getElementById(`${column}SortIndicator`);
+            indicator.textContent = sortAscending ? "v" : "^";
+
+            // Sort the songsData array
+            songsData.sort((a, b) => {
+                if (column === "Year" || column === "Length" || column === "TrackNum") {
+                    return sortAscending ? a[column] - b[column] : b[column] - a[column];
+                } else {
+                    return sortAscending
+                        ? a[column].localeCompare(b[column])
+                        : b[column].localeCompare(a[column]);
+                }
+            });
+
+            // Re-render the table
+            displaySongs();
+        }
+
+        function showHint() {
+            const hintButton = document.getElementById("hintButton");
+            const hintText = document.getElementById("hintText");
+
+            if (!correctSong) {
+            alert("No correct song selected yet!");
+            return;
+            }
+
+            // Reset the hint text area before fetching new hint
+            hintText.innerText = "Loading hint...";
+
+            fetch(`https://api.lyrics.ovh/v1/${encodeURIComponent(correctSong.Artist)}/${encodeURIComponent(correctSong.Song)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.lyrics) {
+                const lines = data.lyrics.split('\n').filter(line => line.trim() !== "");
+                console.log("Lines: ", lines);  // Debugging the lines array
+                if (lines.length > 1) {
+                    let randomIndex = Math.floor(Math.random() * (lines.length - 1));
+                    let line1 = lines[randomIndex];
+                    let line2 = lines[randomIndex + 1];
+
+                    // Ensure the lines are valid and do not contain section labels like [Verse 1]
+                    while ((line1.includes("[") || line1.includes("]") || line1.length < 10) && randomIndex < lines.length - 1) {
+                    randomIndex = Math.floor(Math.random() * (lines.length - 1));
+                    line1 = lines[randomIndex];
+                    line2 = lines[randomIndex + 1];
+                    }
+
+                    hintText.innerText = `Hint:\n"${line1}"\n"${line2}"`;
+                } else {
+                    hintText.innerText = "Not enough lyrics available for this song.";
+                }
+                } else {
+                hintText.innerText = "No lyrics available for this song.";
+                }
+            })
+            .catch(() => {
+                hintText.innerText = "Error fetching lyrics.";
+            });
+
+            // Hide the hint button and show the hint text
+            hintButton.style.display = "none";
+            hintText.style.display = "block";
+        }
+
+        function searchSong() {
+            const query = document.getElementById("songSearch").value.toLowerCase();
+            const searchResults = document.getElementById("searchResults");
+            searchResults.innerHTML = '';
+
+            if (query) {
+                const matches = songsData.filter(song => song.Song.toLowerCase().includes(query));
+                matches.forEach(match => {
+                    const resultDiv = document.createElement("div");
+                    resultDiv.textContent = match.Song;
+                    resultDiv.onclick = () => {
+                        makeGuess(match.Song);
+                        document.getElementById("songSearch").value = '';
+                        searchResults.innerHTML = '';
+                    };
+                    searchResults.appendChild(resultDiv);
+                });
+            }
+        }
+
+        function makeGuess(Song) {
+            const song = songsData.find(song => song.Song === Song);
+            if (song) {
+                guessCount++;
+                const guessesContainer = document.getElementById("guessesContainer");
+
+                const guessTitle = document.createElement("div");
+                guessTitle.classList.add("guess-title");
+                guessTitle.textContent = `Guess #${guessCount}`;
+                guessesContainer.appendChild(guessTitle);
+
+                const SongDiv = document.createElement("div");
+                SongDiv.textContent = song.Song;
+                guessesContainer.appendChild(SongDiv);
+
+                const guessBoxes = document.createElement("div");
+                guessBoxes.classList.add("button-container");
+                guessBoxes.classList.add("guess-boxes");
+                guessesContainer.appendChild(guessBoxes);
+
+                const guess = { song, feedback: {} };
+                guesses.push(guess);
+
+                provideFeedback(song, guessBoxes, guess);
+            }
+        }
+
+        function provideFeedback(song, container, guess) {
+            const categories = ["Album", "Year", "Length", "Artist", "TrackNum", "Type"];
+            categories.forEach(category => {
+                const button = document.createElement("button");
+                const feedback = getFeedback(category, song[category], correctSong[category]);
+                guess.feedback[category] = feedback;
+                if (category === 'Length'){
+                    button.innerHTML = `<span class="button-text">${category.charAt(0).toUpperCase() + category.slice(1)}: ${song[category]}s</span><br><span class="button-text">(${feedback})</span>`;}
+                else {
+                    button.innerHTML = `<span class="button-text">${category.charAt(0).toUpperCase() + category.slice(1)}: ${song[category]}</span><br><span class="button-text">(${feedback})</span>`;}
+                button.className = getFeedbackColor(feedback);
+                container.appendChild(button);
+            });
+
+            if (song.Song === correctSong.Song) {
+                alert("Congratulations! You've guessed the correct song!");
+            }
+        }
+
+        function getFeedback(category, guessValue, correctValue) {
+            if (category === 'Year') {
+                const guessYear = parseInt(guessValue);
+                const correctYear = parseInt(correctValue);
+                const diff = Math.abs(guessYear - correctYear);
+                if (diff === 0) return 'correct';
+                if (diff <= 5) return guessYear > correctYear ? 'close v' : 'close ^';
+                return guessYear < correctYear ? 'later ^' : 'earlier v';
+            } else if (category === 'Length') {
+                const guessLength = parseInt(guessValue);
+                const correctLength = parseInt(correctValue);
+                const diff = Math.abs(guessLength - correctLength);
+                if (diff === 0) return 'correct';
+                if (diff <= 50) return guessLength < correctLength ? 'close v' : 'close ^';
+                return guessLength > correctLength ? 'shorter v' : 'longer ^';
+            } else if (category === 'TrackNum'){
+                const guessTrackNum = parseInt(guessValue);
+                const correctTrackNum = parseInt(correctValue);
+                const diff = Math.abs(guessTrackNum - correctTrackNum);
+                if (diff === 0) return 'correct';
+                if (diff <= 5) return guessTrackNum < correctTrackNum ? 'close v' : 'close ^';
+                return guessTrackNum < correctTrackNum ? 'lower v' : 'higher ^';
+            } else {
+                return guessValue === correctValue ? 'correct' : 'wrong';
+            }
+        }
+
+        function getFeedbackColor(feedback) {
+            if (feedback === 'correct') return 'green';
+            if (feedback.includes('close')) return 'orange';
+            return 'grey';
+        }
+
+        function displaySongs() {
+            const songList = document.getElementById("songList");
+            songList.innerHTML = '';
+
+            songsData.forEach(song => {
+                const songItem = document.createElement("tr");
+                songItem.innerHTML = `
+                    <td>${song.Song}</td>
+                    <td>${song.Album}</td>
+                    <td>${song.Year}</td>
+                    <td>${song.Length}s</td>
+                    <td>${song.Artist}</td>
+                    <td>${song.TrackNum}</td>
+                    <td>${song.Type}</td>
+                `;
+                songList.appendChild(songItem);
+            });
+        }
+
+        function resetGame() {
+            console.log("Starting new game")
+            // Reset game state
+            correctSong = null;  // Reset the correct song
+            guessCount = 0;  // Reset guess count
+            guesses = [];  // Clear previous guesses
+
+            // Clear previous guesses from UI
+            document.getElementById("guessesContainer").innerHTML = '';
+
+            // Reset the song list and search results
+            document.getElementById("songList").innerHTML = '';
+            document.getElementById("searchResults").innerHTML = '';
+            
+            //Reset hint button
+            const hintButton = document.getElementById("hintButton");
+            const hintText = document.getElementById("hintText");
+            hintButton.style.display = "inline-block";  // Make the hint button visible again
+            hintText.style.display = "none";  // Hide the hint text
+
+            // Reload the songs using the stored data
+            const ArtistName = getArtistFromURL();
+            const storedData = localStorage.getItem(ArtistName);
+            songsData = JSON.parse(storedData);
+            correctSong = songsData[Math.floor(Math.random() * songsData.length)];
+            snippetStartTime = Math.floor(Math.random() * Math.max(0, 27));
+            displaySongs();
+            console.log("Finished loading data.");
+            console.log("Correct Song is: " + correctSong.Song);
+        }
+
+        // Function to toggle the sidebar
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('open');
+            if (!sidebar.classList.contains('open')) {
+                // Wait for the transition to complete before hiding
+                setTimeout(() => {
+                    sidebar.style.visibility = 'hidden';
+                }, 300); // Match the transition duration
+            } else {
+                sidebar.style.visibility = 'visible';
+            }
+        }
+
+        function toggleSingles(){
+            const body = document.body;
+            body.classList.toggle('singles-mode');
+            const isSinglesMode = body.classList.contains('singles-mode');
+            localStorage.setItem('singlesMode', isSinglesMode);
+            loadSongs();
+        }
+
+        function checkSinglesModePreference() {
+            const isSinglesMode = localStorage.getItem('singlesMode') === 'true';
+            if (isSinglesMode) {
+                document.body.classList.add('singles-mode');
+                document.getElementById('singlesToggle').checked = true;
+            }
+        }
+
+        function toggleSkits(){
+            const body = document.body;
+            body.classList.toggle('skits-mode');
+            const isSkitsMode = body.classList.contains('skits-mode');
+            localStorage.setItem('skitsMode', isSkitsMode);
+            loadSongs();
+        }
+
+        function checkSkitsModePreference() {
+            const isSkitsMode = localStorage.getItem('skitsMode') === 'true';
+            if (isSkitsMode) {
+                document.body.classList.add('skits-mode');
+                document.getElementById('skitsToggle').checked = true;
+            }
+        }
+
+        function toggleLyrics(){
+            const body = document.body;
+            body.classList.toggle('lyrics-mode');
+            const isLyricsMode = body.classList.contains('lyrics-mode');
+            localStorage.setItem('lyricsMode', isLyricsMode);
+            loadSongs();
+        }
+
+        function checkLyricsModePreference() {
+            const isLyricsMode = localStorage.getItem('lyricsMode') === 'true';
+            if (isLyricsMode) {
+                document.body.classList.add('lyrics-mode');
+                document.getElementById('lyricsToggle').checked = true;
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', checkSinglesModePreference);
+        document.addEventListener('DOMContentLoaded', checkSkitsModePreference);
+        document.addEventListener('DOMContentLoaded', checkLyricsModePreference);
+
+        // Initialize songs on page load
+        document.addEventListener('DOMContentLoaded', loadSongs);
+    </script>
+</body>
+</html>
