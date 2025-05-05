@@ -2,13 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Album Rating</title>
+  <title>Album Ratings</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       background-color: #121212;
       color: #fff;
       padding: 20px;
+    }
+    h1 {
+      color: #ff7f50;
     }
     .album-container {
       display: flex;
@@ -23,142 +26,60 @@
     .album img {
       width: 100%;
       border-radius: 8px;
-      transition: filter 0.2s;
     }
-    .album img:hover {
-      filter: brightness(1.2);
-    }
-    .rating-container {
-      margin-top: 30px;
-    }
-    .tracklist {
-      margin-top: 10px;
-    }
-    .track {
+    .rating {
       display: flex;
-      justify-content: space-between;
-      margin: 4px 0;
+      justify-content: center;
+      margin-top: 8px;
     }
-    .rating-input {
-      width: 40px;
-    }
-    input[type=number]::-webkit-inner-spin-button {
-      -webkit-appearance: none;
+    .rating input {
+      width: 30px;
+      text-align: center;
+      margin: 0 5px;
     }
   </style>
 </head>
 <body>
-  <h1>Album Rating</h1>
+  <h1>Rate Albums and Songs</h1>
   <div class="album-container" id="albumContainer"></div>
-  <div class="rating-container" id="ratingContainer" style="display:none;"></div>
 
   <script>
-    const artistId = localStorage.getItem("selectedArtistId");
+    const artistData = JSON.parse(localStorage.getItem('selectedArtist'));
 
-    async function getAlbums(artistId) {
-      try {
-        const response = await fetch(`https://itunes.apple.com/lookup?id=${artistId}&entity=album&limit=200`);
-        const data = await response.json();
-        const albums = data.results.filter(item =>
-          item.wrapperType === "collection" &&
-          item.collectionType === "Album"
-        );
-
-        const uniqueAlbums = [];
-        const names = new Set();
-        for (const album of albums) {
-          const key = album.collectionName.toLowerCase();
-          if (!names.has(key)) {
-            names.add(key);
-            uniqueAlbums.push(album);
-          }
-        }
-        return uniqueAlbums;
-      } catch (error) {
-        console.error('Error fetching albums:', error);
-      }
+    if (!artistData) {
+      alert("No artist data found.");
+      window.location.href = "index.html";
     }
 
-    function getRatingKey(collectionId) {
-      return `albumRating_${collectionId}`;
-    }
-
-    function loadAlbums() {
-      getAlbums(artistId).then(albums => {
-        if (!albums || albums.length === 0) {
-          document.getElementById('albumContainer').innerHTML = 'No albums found.';
-          return;
-        }
-
-        const container = document.getElementById("albumContainer");
-        albums.forEach(album => {
-          const div = document.createElement("div");
-          div.classList.add("album");
-          div.onclick = () => showRatingPanel(album);
-
-          const saved = JSON.parse(localStorage.getItem(getRatingKey(album.collectionId)) || "{}");
-          const albumRating = saved.albumRating !== undefined ? `⭐ ${saved.albumRating}/10` : "";
-
-          div.innerHTML = `
-            <img src="${album.artworkUrl100.replace("100x100bb", "150x150bb")}" title="${album.collectionName}">
-            <div style="margin-top:5px; font-size: 13px; color: #ccc;">${albumRating}</div>
-          `;
-          container.appendChild(div);
-        });
-      });
-    }
-
-    async function showRatingPanel(album) {
-      const response = await fetch(`https://itunes.apple.com/lookup?id=${album.collectionId}&entity=song`);
+    async function getAlbums() {
+      const artistId = artistData.artistId;
+      const response = await fetch(`https://itunes.apple.com/lookup?id=${artistId}&entity=album&limit=200`);
       const data = await response.json();
-      const tracks = data.results.filter(item => item.wrapperType === "track");
+      const albums = data.results.filter(item =>
+        item.wrapperType === "collection" &&
+        item.collectionType === "Album"
+      );
 
-      const saved = JSON.parse(localStorage.getItem(getRatingKey(album.collectionId)) || "{}");
-      const songRatings = saved.songRatings || {};
-      const albumRating = saved.albumRating || "";
+      const container = document.getElementById("albumContainer");
+      albums.forEach(album => {
+        const div = document.createElement("div");
+        div.classList.add("album");
+        div.onclick = () => {
+          const rating = prompt(`Rate album: ${album.collectionName}`);
+          if (rating && !isNaN(rating) && rating >= 1 && rating <= 10) {
+            localStorage.setItem(album.collectionId, rating);
+          }
+        };
 
-      const panel = document.getElementById("ratingContainer");
-      panel.innerHTML = `
-        <h2>${album.collectionName}</h2>
-        <label>Album Rating (out of 10): 
-          <input type="number" id="albumRating" min="0" max="10" step="0.1" value="${albumRating}" class="rating-input">
-        </label>
-        <div class="tracklist">
-          ${tracks.map(track => `
-            <div class="track">
-              <span>${track.trackNumber}. ${track.trackName}</span>
-              <input type="number" min="0" max="10" step="0.1" class="rating-input" data-trackid="${track.trackId}" value="${songRatings[track.trackId] || ""}">
-            </div>
-          `).join("")}
-        </div>
-        <button onclick="saveRatings(${album.collectionId})">Save Ratings</button>
-      `;
-      panel.style.display = "block";
-    }
-
-    function saveRatings(collectionId) {
-      const albumRating = document.getElementById("albumRating").value;
-      const inputs = document.querySelectorAll('[data-trackid]');
-      const songRatings = {};
-      inputs.forEach(input => {
-        const trackId = input.getAttribute("data-trackid");
-        const val = input.value;
-        if (val !== "") {
-          songRatings[trackId] = parseFloat(val);
-        }
+        div.innerHTML = `
+          <img src="${album.artworkUrl100.replace("100x100bb", "150x150bb")}" title="${album.collectionName}">
+          <div>${album.collectionName}</div>
+        `;
+        container.appendChild(div);
       });
-
-      const data = {
-        albumRating: albumRating ? parseFloat(albumRating) : undefined,
-        songRatings
-      };
-
-      localStorage.setItem(getRatingKey(collectionId), JSON.stringify(data));
-      alert("Ratings saved!");
-      location.reload(); // Refresh to update display
     }
 
-    loadAlbums();
+    getAlbums();
   </script>
 </body>
 </html>
