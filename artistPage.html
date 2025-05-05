@@ -37,6 +37,7 @@
     <button onclick="goToTierList()">Tier Rank Albums</button>
     <button onclick="goToAlbumRating()">Rate Albums & Songs</button>
     <button onclick="goToMyRankings()">View My Rankings</button>
+    <button onclick="goToSongGuessGame()">Play song guessing game</button>
   </div>
 
   <script>
@@ -45,15 +46,19 @@
     document.getElementById("artistName").innerText = artistName;
 
     function goToTierList() {
-      window.location.href = `tierlist.html?artist=${encodeURIComponent(artistName)}`;
+      window.location.href = `tierList.html?artist=${encodeURIComponent(artistName)}`;
     }
 
     function goToAlbumRating() {
-      window.location.href = `albumrating.html?artist=${encodeURIComponent(artistName)}`;
+      window.location.href = `albumRating.html?artist=${encodeURIComponent(artistName)}`;
     }
 
     function goToMyRankings() {
       window.location.href = `myRankings.html?artist=${encodeURIComponent(artistName)}`;
+    }
+
+    function goToSongGuessGame() {
+      window.location.href = `songGuessGame.html?artist=${encodeURIComponent(artistName)}`;
     }
   </script>
 
