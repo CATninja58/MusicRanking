@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Artist Page</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #121212;
+      color: #f4f4f4;
+      text-align: center;
+    }
+    h1 {
+      margin-top: 20px;
+    }
+    button {
+      background-color: #1c1c1c;
+      color: #f4f4f4;
+      padding: 15px;
+      margin: 20px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background-color: #333;
+    }
+  </style>
+</head>
+<body>
+
+  <h1 id="artistName">Loading...</h1>
+
+  <div>
+    <button onclick="goToTierList()">Tier Rank Albums</button>
+    <button onclick="goToAlbumRating()">Rate Albums & Songs</button>
+    <button onclick="goToMyRankings()">View My Rankings</button>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const artistName = params.get("artist");
+    document.getElementById("artistName").innerText = artistName;
+
+    function goToTierList() {
+      window.location.href = `tierlist.html?artist=${encodeURIComponent(artistName)}`;
+    }
+
+    function goToAlbumRating() {
+      window.location.href = `albumrating.html?artist=${encodeURIComponent(artistName)}`;
+    }
+
+    function goToMyRankings() {
+      window.location.href = `myrankings.html?artist=${encodeURIComponent(artistName)}`;
+    }
+  </script>
+
+</body>
+</html>
