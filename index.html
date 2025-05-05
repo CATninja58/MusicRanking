@@ -63,20 +63,30 @@
       const response = await fetch(url);
       const data = await response.json();
 
+      if (!data.results || data.results.length === 0) {
+        resultsDiv.innerHTML = "<p>No artists found. Please try a different name.</p>";
+        return;
+      }
+
       // Loop through the artist results and display them
       data.results.forEach(artist => {
         const artistCard = document.createElement("div");
         artistCard.classList.add("artist-card");
+
+        // Ensuring artwork URL is available before using it
+        const imageUrl = artist.artworkUrl100 || 'https://via.placeholder.com/100'; // Placeholder if no image is found
+
         artistCard.innerHTML = `
-          <img src="${artist.artworkUrl100}" alt="${artist.artistName}">
+          <img src="${imageUrl}" alt="${artist.artistName}">
           <p>${artist.artistName}</p>
+          <p><strong>Genre:</strong> ${artist.primaryGenreName || 'Unknown'}</p>
         `;
         
         // Add click event to navigate to the artist page
         artistCard.onclick = () => {
-          window.location.href = `artistPage.html?artist=${encodeURIComponent(artist.artistName)}`;
+          window.location.href = `artistPage.html?artist=${encodeURIComponent(artist.artistName)}&id=${artist.artistId}`;
         };
-        
+
         resultsDiv.appendChild(artistCard);
       });
     }
