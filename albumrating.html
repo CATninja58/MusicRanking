@@ -2,97 +2,197 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rate Albums & Songs</title>
+  <title>Album Ratings</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background-color: #121212;
-      color: #f4f4f4;
+      font-family: sans-serif;
+      background: #1e1e1e;
+      color: #fff;
+      padding: 20px;
+    }
+    h1 {
+      font-size: 28px;
+    }
+    .album-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .album {
+      cursor: pointer;
       text-align: center;
     }
-    .album-container {
-      display: flex;
-      flex-direction: column;
-      margin: 30px;
+    .album img {
+      border-radius: 8px;
+      width: 120px;
+      height: 120px;
+      object-fit: cover;
     }
-    .album-card {
-      background-color: #1c1c1c;
-      padding: 15px;
-      border-radius: 10px;
-      margin-bottom: 20px;
-      text-align: center;
+    .modal {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.8);
+      display: none;
+      justify-content: center;
+      align-items: center;
     }
-    .song-container {
+    .modal-content {
+      background: #2c2c2c;
+      padding: 20px;
+      border-radius: 12px;
+      width: 400px;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    .song {
       display: flex;
-      flex-direction: column;
-      margin-top: 20px;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .song input {
+      width: 50px;
+    }
+    .rating-input {
+      margin-top: 10px;
+    }
+    button {
+      margin-top: 10px;
+      padding: 6px 12px;
+      background: #444;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
+  <h1 id="title">Loading...</h1>
+  <div class="album-grid" id="albumGrid"></div>
 
-  <h1 id="artistName">Loading...</h1>
-  <div id="albumList" class="album-container"></div>
+  <div class="modal" id="modal">
+    <div class="modal-content">
+      <h2 id="albumTitle"></h2>
+      <div id="trackList"></div>
+      <div class="rating-input">
+        <label>Album Rating: <input type="number" id="albumRating" min="0" max="10" step="0.1"></label>
+      </div>
+      <button onclick="saveRatings()">Save</button>
+      <button onclick="closeModal()">Close</button>
+    </div>
+  </div>
 
   <script>
-    const params = new URLSearchParams(window.location.search);
-    const artistName = params.get("artist");
-    document.getElementById("artistName").innerText = artistName;
+    const artist = new URLSearchParams(window.location.search).get("artist");
+    const albumGrid = document.getElementById("albumGrid");
+    const modal = document.getElementById("modal");
+    const albumTitle = document.getElementById("albumTitle");
+    const trackList = document.getElementById("trackList");
+    const albumRatingInput = document.getElementById("albumRating");
 
-    async function fetchAlbums() {
-      const url = `https://itunes.apple.com/search?term=${encodeURIComponent(artistName)}&entity=album&limit=12`;
-      const response = await fetch(url);
-      const data = await response.json();
-      const albums = data.results;
+    let currentAlbumId = "";
+    let currentAlbumTracks = [];
 
-      const albumList = document.getElementById("albumList");
-      albums.forEach(album => {
-        const albumCard = document.createElement("div");
-        albumCard.classList.add("album-card");
-        albumCard.innerHTML = `
-          <img src="${album.artworkUrl100}" alt="${album.collectionName}">
-          <h2>${album.collectionName}</h2>
-          <button onclick="rateAlbum('${album.collectionId}')">Rate this Album</button>
+    function getRatingKey(albumId) {
+      return `rating-${artist}-${albumId}`;
+    }
+
+    function openModal(album) {
+      currentAlbumId = album.collectionId;
+      albumTitle.textContent = album.collectionName;
+      trackList.innerHTML = "";
+      albumRatingInput.value = "";
+
+      fetch(`https://itunes.apple.com/lookup?id=${album.collectionId}&entity=song`)
+        .then(res => res.json())
+        .then(data => {
+          const tracks = data.results.filter(item => item.wrapperType === "track");
+          currentAlbumTracks = tracks;
+
+          const saved = JSON.parse(localStorage.getItem(getRatingKey(currentAlbumId)) || "{}");
+
+          tracks.forEach(track => {
+            const div = document.createElement("div");
+            div.className = "song";
+            div.innerHTML = `
+              <span>${track.trackNumber}. ${track.trackName}</span>
+              <input type="number" min="0" max="10" step="0.1" value="${saved[track.trackId] || ""}" data-track-id="${track.trackId}">
+            `;
+            trackList.appendChild(div);
+          });
+
+          if (saved.albumRating !== undefined) {
+            albumRatingInput.value = saved.albumRating;
+          }
+
+          modal.style.display = "flex";
+        });
+    }
+
+    function closeModal() {
+      modal.style.display = "none";
+    }
+
+    function saveRatings() {
+      const inputs = trackList.querySelectorAll("input");
+      const ratings = {};
+      inputs.forEach(input => {
+        const id = input.dataset.trackId;
+        const val = parseFloat(input.value);
+        if (!isNaN(val)) ratings[id] = val;
+      });
+
+      const albumRating = parseFloat(albumRatingInput.value);
+      if (!isNaN(albumRating)) ratings.albumRating = albumRating;
+
+      localStorage.setItem(getRatingKey(currentAlbumId), JSON.stringify(ratings));
+      alert("Ratings saved!");
+      closeModal();
+    }
+
+    async function loadAlbums() {
+      document.getElementById("title").textContent = `Album Ratings – ${artist}`;
+      const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(artist)}&entity=album&limit=200`);
+      const data = await res.json();
+
+      const albums = data.results
+        .filter(item =>
+          item.collectionType === "Album" &&
+          !item.collectionName.toLowerCase().includes("single") &&
+          !item.collectionName.toLowerCase().includes("ep") &&
+          !item.collectionName.toLowerCase().includes("instrumental") &&
+          !item.collectionName.toLowerCase().includes("karaoke")
+        );
+
+      const unique = [];
+      const seen = new Set();
+      for (const album of albums) {
+        if (!seen.has(album.collectionName)) {
+          unique.push(album);
+          seen.add(album.collectionName);
+        }
+      }
+
+      unique.sort((a, b) => new Date(a.releaseDate) - new Date(b.releaseDate));
+
+      unique.forEach(album => {
+        const div = document.createElement("div");
+        div.className = "album";
+        div.innerHTML = `
+          <img src="${album.artworkUrl100.replace("100x100bb", "150x150bb")}" title="${album.collectionName}">
+          <div style="margin-top:5px">${album.collectionName}</div>
         `;
-        albumList.appendChild(albumCard);
+        div.onclick = () => openModal(album);
+        albumGrid.appendChild(div);
       });
     }
 
-    async function rateAlbum(albumId) {
-      const url = `https://itunes.apple.com/lookup?id=${albumId}&entity=song`;
-      const response = await fetch(url);
-      const data = await response.json();
-      const album = data.results[0];
-      const songs = data.results.slice(1);
-
-      const albumContainer = document.createElement("div");
-      albumContainer.classList.add("album-container");
-
-      albumContainer.innerHTML = `
-        <h2>${album.collectionName}</h2>
-        <label for="albumRating">Rate this Album (1-10):</label>
-        <input type="number" id="albumRating" min="1" max="10">
-        <div class="song-container">
-          <h3>Songs</h3>
-        </div>
-      `;
-      document.body.appendChild(albumContainer);
-
-      const songContainer = albumContainer.querySelector(".song-container");
-      songs.forEach(song => {
-        const songDiv = document.createElement("div");
-        songDiv.innerHTML = `
-          <p>${song.trackName}</p>
-          <label for="songRating-${song.trackId}">Rate this Song (1-10):</label>
-          <input type="number" id="songRating-${song.trackId}" min="1" max="10">
-        `;
-        songContainer.appendChild(songDiv);
-      });
+    if (artist) {
+      loadAlbums();
+    } else {
+      document.getElementById("title").textContent = "No artist selected.";
     }
-
-    fetchAlbums();
   </script>
-
 </body>
 </html>
