@@ -2,84 +2,116 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Album Ratings</title>
+  <title>Album Rating</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background-color: #121212;
-      color: #fff;
       padding: 20px;
     }
-    h1 {
-      color: #ff7f50;
-    }
-    .album-container {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 16px;
-    }
     .album {
-      cursor: pointer;
-      width: 150px;
-      text-align: center;
+      margin-bottom: 20px;
+      border: 1px solid #ccc;
+      padding: 15px;
+      border-radius: 5px;
     }
-    .album img {
-      width: 100%;
-      border-radius: 8px;
+    .album-cover {
+      width: 100px;
+      height: 100px;
+      object-fit: cover;
     }
-    .rating {
+    .songs {
+      margin-top: 10px;
+      padding-left: 20px;
+    }
+    .song {
       display: flex;
-      justify-content: center;
-      margin-top: 8px;
+      justify-content: space-between;
+      align-items: center;
+      margin: 5px 0;
     }
-    .rating input {
-      width: 30px;
-      text-align: center;
-      margin: 0 5px;
+    input[type="number"] {
+      width: 50px;
     }
   </style>
 </head>
 <body>
-  <h1>Rate Albums and Songs</h1>
-  <div class="album-container" id="albumContainer"></div>
+  <h1>Album Rating</h1>
+  <div id="albumContainer"></div>
 
   <script>
-    const artistData = JSON.parse(localStorage.getItem('selectedArtist'));
+    document.addEventListener("DOMContentLoaded", () => {
+      const data = localStorage.getItem("currentArtistData");
+      if (!data) {
+        alert("No artist data found. Go back and select an artist first.");
+        return;
+      }
 
-    if (!artistData) {
-      alert("No artist data found.");
-      window.location.href = "index.html";
-    }
+      let artistData;
+      try {
+        artistData = JSON.parse(data);
+      } catch (e) {
+        console.error("Failed to parse artist data:", e);
+        alert("Could not load artist data.");
+        return;
+      }
 
-    async function getAlbums() {
-      const artistId = artistData.artistId;
-      const response = await fetch(`https://itunes.apple.com/lookup?id=${artistId}&entity=album&limit=200`);
-      const data = await response.json();
-      const albums = data.results.filter(item =>
-        item.wrapperType === "collection" &&
-        item.collectionType === "Album"
-      );
+      const albumContainer = document.getElementById("albumContainer");
 
-      const container = document.getElementById("albumContainer");
-      albums.forEach(album => {
-        const div = document.createElement("div");
-        div.classList.add("album");
-        div.onclick = () => {
-          const rating = prompt(`Rate album: ${album.collectionName}`);
-          if (rating && !isNaN(rating) && rating >= 1 && rating <= 10) {
-            localStorage.setItem(album.collectionId, rating);
-          }
-        };
+      const ratingsKey = `ratings_${artistData.id}`;
+      const storedRatings = JSON.parse(localStorage.getItem(ratingsKey) || "{}");
 
-        div.innerHTML = `
-          <img src="${album.artworkUrl100.replace("100x100bb", "150x150bb")}" title="${album.collectionName}">
-          <div>${album.collectionName}</div>
+      artistData.albums.forEach(album => {
+        const albumDiv = document.createElement("div");
+        albumDiv.className = "album";
+
+        const albumHeader = document.createElement("div");
+        albumHeader.innerHTML = `
+          <img class="album-cover" src="${album.cover}" alt="${album.name}">
+          <strong>${album.name}</strong> (${album.releaseDate.split("-")[0]})
+          <br>Overall Rating: 
+          <input type="number" min="0" max="10" step="0.1" value="${storedRatings[album.name]?.rating || ''}" 
+                 onchange="saveAlbumRating('${album.name}', this.value)">
+          <br><button onclick="toggleSongs(this)">Show/Hide Songs</button>
         `;
-        container.appendChild(div);
-      });
-    }
 
-    getAlbums();
+        const songsDiv = document.createElement("div");
+        songsDiv.className = "songs";
+        songsDiv.style.display = "none";
+
+        album.songs.forEach(song => {
+          const songDiv = document.createElement("div");
+          songDiv.className = "song";
+          songDiv.innerHTML = `
+            <span>${song.trackNumber}. ${song.name}</span>
+            <input type="number" min="0" max="10" step="0.1" 
+              value="${storedRatings[album.name]?.songs?.[song.name] || ''}"
+              onchange="saveSongRating('${album.name}', '${song.name}', this.value)">
+          `;
+          songsDiv.appendChild(songDiv);
+        });
+
+        albumDiv.appendChild(albumHeader);
+        albumDiv.appendChild(songsDiv);
+        albumContainer.appendChild(albumDiv);
+      });
+
+      window.toggleSongs = (btn) => {
+        const songs = btn.parentElement.nextElementSibling;
+        songs.style.display = songs.style.display === "none" ? "block" : "none";
+      }
+
+      window.saveAlbumRating = (albumName, rating) => {
+        if (!storedRatings[albumName]) storedRatings[albumName] = { rating: "", songs: {} };
+        storedRatings[albumName].rating = rating;
+        localStorage.setItem(ratingsKey, JSON.stringify(storedRatings));
+      }
+
+      window.saveSongRating = (albumName, songName, rating) => {
+        if (!storedRatings[albumName]) storedRatings[albumName] = { rating: "", songs: {} };
+        storedRatings[albumName].songs[songName] = rating;
+        localStorage.setItem(ratingsKey, JSON.stringify(storedRatings));
+      }
+    });
   </script>
 </body>
 </html>
