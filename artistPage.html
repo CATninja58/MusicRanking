@@ -6,66 +6,131 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      background-color: #121212;
-      color: #fff;
+      background-color: #111;
+      color: white;
       padding: 20px;
     }
     h1 {
       color: #ff7f50;
     }
-    .links {
-      margin-top: 20px;
-    }
-    .link-box {
-      background-color: #333;
-      border-radius: 8px;
-      padding: 20px;
+    .links a {
+      display: block;
       margin: 10px 0;
-      text-align: center;
-    }
-    .link-box a {
-      color: #ff7f50;
+      color: #1db954;
       text-decoration: none;
-      font-size: 18px;
+      font-weight: bold;
     }
-    .link-box a:hover {
-      text-decoration: underline;
+    .album {
+      margin: 10px 0;
+      padding: 10px;
+      background: #222;
+      border-radius: 5px;
+    }
+    .songs {
+      margin-left: 20px;
     }
   </style>
 </head>
 <body>
-  <h1>Artist: <span id="artistName"></span></h1>
+  <h1>Artist Page</h1>
+  <p>Data is being loaded and saved to localStorage...</p>
+
   <div class="links">
-    <div class="link-box">
-      <a href="albumRatings.html">Go to Album Ratings</a>
-    </div>
-    <div class="link-box">
-      <a href="tierList.html">Go to Tier List</a>
-    </div>
-    <div class="link-box">
-      <a href="myRankings.html">Go to My Rankings</a>
-    </div>
+    <a href="albumRating.html">Go to Album Rating</a>
+    <a href="tierList.html">Go to Tier List</a>
+    <a href="myRankings.html">Go to My Rankings</a>
   </div>
 
+  <div id="debugDisplay"></div>
+
   <script>
-    const urlParams = new URLSearchParams(window.location.search);
-    const artistName = urlParams.get('artist');
-    const artistId = urlParams.get('id');
-
-    document.getElementById('artistName').textContent = artistName;
-
     async function fetchArtistData(artistId) {
-      const response = await fetch(`https://itunes.apple.com/lookup?id=${artistId}`);
+      const response = await fetch(`https://itunes.apple.com/lookup?id=${artistId}&entity=album`);
       const data = await response.json();
-      if (data.results.length > 1) {
-        const artistData = data.results[1];
-        localStorage.setItem('selectedArtist', JSON.stringify(artistData));
-      }
+      return data;
     }
 
-    if (artistId) {
-      fetchArtistData(artistId);
+    async function fetchSongsForAlbum(albumId) {
+      const response = await fetch(`https://itunes.apple.com/lookup?id=${albumId}&entity=song`);
+      const data = await response.json();
+      return data.results.filter(item => item.wrapperType === "track");
     }
+
+    async function main() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const artistName = urlParams.get("artist");
+      const artistId = urlParams.get("id");
+
+      if (!artistId || !artistName) {
+        alert("Artist name or ID missing from URL.");
+        return;
+      }
+
+      console.log("Fetching data for:", artistName, `(ID: ${artistId})`);
+
+      const artistAlbumData = await fetchArtistData(artistId);
+
+      if (!artistAlbumData.results || artistAlbumData.results.length === 0) {
+        alert("No artist data found.");
+        return;
+      }
+
+      const artistInfo = artistAlbumData.results[0];
+      const albums = artistAlbumData.results
+        .filter(item => item.wrapperType === "collection")
+        .filter((v, i, a) => a.findIndex(t => t.collectionId === v.collectionId) === i); // Remove duplicates
+
+      // Fetch all songs from all albums
+      const albumDataWithTracks = [];
+      for (const album of albums) {
+        const songs = await fetchSongsForAlbum(album.collectionId);
+        albumDataWithTracks.push({
+          ...album,
+          songs: songs.map(song => ({
+            trackId: song.trackId,
+            trackName: song.trackName,
+            trackNumber: song.trackNumber,
+            previewUrl: song.previewUrl,
+            trackTimeMillis: song.trackTimeMillis
+          }))
+        });
+      }
+
+      const fullArtistData = {
+        artistName: artistName,
+        artistId: artistId,
+        albums: albumDataWithTracks
+      };
+
+      // Save to localStorage
+      localStorage.setItem("currentArtistData", JSON.stringify(fullArtistData));
+
+      // Debug log
+      console.log("Full Artist Data:", fullArtistData);
+
+      // Render readable log to page
+      const debugDiv = document.getElementById("debugDisplay");
+      fullArtistData.albums.forEach(album => {
+        const albumDiv = document.createElement("div");
+        albumDiv.className = "album";
+        const albumHeader = document.createElement("strong");
+        albumHeader.textContent = album.collectionName;
+        albumDiv.appendChild(albumHeader);
+
+        const songList = document.createElement("ul");
+        songList.className = "songs";
+        album.songs.forEach(song => {
+          const songItem = document.createElement("li");
+          songItem.textContent = `${song.trackNumber}. ${song.trackName}`;
+          songList.appendChild(songItem);
+        });
+
+        albumDiv.appendChild(songList);
+        debugDiv.appendChild(albumDiv);
+      });
+    }
+
+    main();
   </script>
 </body>
 </html>
