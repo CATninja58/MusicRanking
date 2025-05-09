@@ -1,420 +1,392 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Tier List</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f4f4;
-      padding: 20px;
-      position: relative;
-    }
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Tier List</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f4f4;
+            padding: 20px;
+            position: relative;
+        }
 
-    h1 {
-      text-align: center;
-    }
+        h1 {
+            text-align: center;
+        }
 
-    .settings-icon {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      cursor: pointer;
-      font-size: 24px;
-    }
+        .mode-buttons {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+            gap: 10px;
+        }
 
-    .settings-menu {
-      position: absolute;
-      top: 50px;
-      right: 20px;
-      background: white;
-      border: 1px solid #ccc;
-      padding: 10px;
-      display: none;
-      z-index: 999;
-    }
+        .mode-buttons button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
 
-    .settings-menu label {
-      display: block;
-      margin-bottom: 5px;
-      cursor: pointer;
-    }
+        .settings-icon {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            cursor: pointer;
+            font-size: 20px;
+        }
 
-    .mode-buttons {
-      display: flex;
-      justify-content: center;
-      margin-bottom: 20px;
-      gap: 10px;
-    }
+        .settings-menu {
+            display: none;
+            position: absolute;
+            top: 50px;
+            right: 20px;
+            background: white;
+            border: 1px solid #ccc;
+            padding: 10px;
+            z-index: 100;
+        }
 
-    .mode-buttons button {
-      padding: 10px 20px;
-      font-size: 16px;
-      cursor: pointer;
-    }
+        .tier-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
 
-    .tier-container {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
+        .tier-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            background: white;
+            min-height: 80px;
+        }
 
-    .tier-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px;
-      border: 1px solid #ccc;
-      background: white;
-      min-height: 80px;
-    }
+        .tier-label {
+            width: 50px;
+            font-weight: bold;
+            text-align: center;
+        }
 
-    .tier-label {
-      width: 50px;
-      font-weight: bold;
-      text-align: center;
-    }
+        .unranked-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+        }
 
-    .unranked-container {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
-      gap: 10px;
-      margin-top: 20px;
-    }
+        .draggable-item {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            cursor: grab;
+        }
 
-    .draggable-item {
-      width: 60px;
-      height: 60px;
-      object-fit: cover;
-      cursor: grab;
-    }
+        .draggable-song {
+            position: relative;
+            width: 60px;
+            height: 60px;
+            cursor: grab;
+            text-align: center;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
 
-    .draggable-song {
-      position: relative;
-      width: 60px;
-      height: 60px;
-      cursor: grab;
-      text-align: center;
-      color: white;
-      font-size: 12px;
-      font-weight: bold;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-    }
+        .draggable-song img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
 
-    .draggable-song img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      position: absolute;
-      top: 0;
-      left: 0;
-      z-index: 1;
-    }
+        .draggable-song span {
+            z-index: 2;
+            text-shadow: 0 0 5px black;
+        }
 
-    .draggable-song span {
-      z-index: 2;
-      text-shadow: 0 0 5px black;
-    }
+        .album-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
 
-    .album-selector {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      justify-content: center;
-      margin-bottom: 20px;
-    }
+        .album-button {
+            position: relative;
+            width: 100px;
+            height: 100px;
+            cursor: pointer;
+            border: 1px solid #ccc;
+            overflow: hidden;
+        }
 
-    .album-button {
-      position: relative;
-      width: 100px;
-      height: 100px;
-      cursor: pointer;
-      border: 1px solid #ccc;
-      overflow: hidden;
-    }
+        .album-button img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
 
-    .album-button img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
+        .album-button:hover::after {
+            content: attr(data-name);
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            text-align: center;
+            padding: 5px;
+            font-size: 12px;
+        }
 
-    .album-button:hover::after {
-      content: attr(data-name);
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      width: 100%;
-      background: rgba(0, 0, 0, 0.7);
-      color: white;
-      text-align: center;
-      padding: 5px;
-      font-size: 12px;
-    }
+        .search-bar {
+            text-align: center;
+            margin-bottom: 10px;
+        }
 
-    .search-bar {
-      text-align: center;
-      margin-bottom: 10px;
-    }
-
-    .search-bar input {
-      padding: 5px;
-      width: 60%;
-    }
-
-    .hidden {
-      display: none;
-    }
-  </style>
+        .search-bar input {
+            padding: 5px;
+            width: 60%;
+        }
+    </style>
 </head>
 <body>
-  <h1>Tier List for <span id="artistName"></span></h1>
-  <div class="settings-icon" onclick="toggleSettings()">⚙</div>
-  <div class="settings-menu" id="settingsMenu">
-    <label>
-      <input type="checkbox" id="filterDeluxe" onchange="applyFilters()"> Hide Deluxe/Edition Albums
-    </label>
-  </div>
+    <h1>Tier List for <span id="artistName"></span></h1>
 
-  <div class="mode-buttons">
-    <button onclick="setMode('albums')">Rank Albums</button>
-    <button onclick="setMode('albumSongs')">Rank Album Songs</button>
-    <button onclick="setMode('allSongs')">Rank All Songs</button>
-  </div>
+    <div class="settings-icon" onclick="toggleSettings()">⚙️</div>
+    <div class="settings-menu" id="settingsMenu">
+        <label><input type="checkbox" id="filterMajorAlbums" checked> Show only major albums</label>
+    </div>
 
-  <div id="albumSelect" class="album-selector hidden"></div>
-  <div id="songSearch" class="search-bar hidden">
-    <input type="text" id="searchInput" placeholder="Search songs...">
-  </div>
+    <div class="mode-buttons">
+        <button onclick="setMode('albums')">Rank Albums</button>
+        <button onclick="setMode('albumSongs')">Rank Album Songs</button>
+        <button onclick="setMode('allSongs')">Rank All Songs</button>
+    </div>
 
-  <div class="tier-container" id="tierContainer"></div>
-  <div id="unrankedContainer" class="unranked-container"></div>
+    <div id="albumSelect" class="album-selector hidden"></div>
+    <div id="songSearch" class="search-bar hidden">
+        <input type="text" id="searchInput" placeholder="Search songs...">
+    </div>
 
-  <script>
-    const tiers = ['S', 'A', 'B', 'C', 'D'];
-    const tierContainer = document.getElementById('tierContainer');
-    const unrankedContainer = document.getElementById('unrankedContainer');
-    const artistData = JSON.parse(localStorage.getItem('currentArtistData'));
-    const albumSelect = document.getElementById('albumSelect');
-    const searchBar = document.getElementById('songSearch');
-    const searchInput = document.getElementById('searchInput');
-    const artistNameEl = document.getElementById('artistName');
-    const settingsMenu = document.getElementById('settingsMenu');
-    const filterDeluxeCheckbox = document.getElementById('filterDeluxe');
+    <div class="tier-container" id="tierContainer"></div>
+    <div id="unrankedContainer" class="unranked-container"></div>
 
-    if (!artistData) {
-      alert('No artist data found. Please go back and select an artist.');
-      throw new Error("No artist data in localStorage.");
-    }
+    <script>
+        const tiers = ['S+', 'S', 'S-', 'A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'D-'];
+        const tierContainer = document.getElementById('tierContainer');
+        const unrankedContainer = document.getElementById('unrankedContainer');
+        const artistData = JSON.parse(localStorage.getItem('currentArtistData'));
+        const albumSelect = document.getElementById('albumSelect');
+        const searchBar = document.getElementById('songSearch');
+        const searchInput = document.getElementById('searchInput');
+        const artistNameEl = document.getElementById('artistName');
+        const settingsMenu = document.getElementById('settingsMenu');
+        const filterCheckbox = document.getElementById('filterMajorAlbums');
 
-    artistNameEl.textContent = artistData.name;
+        if (!artistData) {
+            alert('No artist data found. Please go back and select an artist.');
+            throw new Error("No artist data in localStorage.");
+        }
 
-    let currentMode = 'albums';
-    let selectedAlbum = null;
+        artistNameEl.textContent = artistData.name;
 
-    function toggleSettings() {
-      settingsMenu.style.display = settingsMenu.style.display === 'block' ? 'none' : 'block';
-    }
+        let currentMode = 'albums';
+        let selectedAlbum = null;
 
-    function applyFilters() {
-      setMode(currentMode); // Reinitialize mode with filters applied
-    }
-    function setMode(mode) {
-      currentMode = mode;
-      selectedAlbum = null;
-      albumSelect.classList.add('hidden');
-      searchBar.classList.add('hidden');
-      renderTierList();
-      unrankedContainer.innerHTML = '';
+        function toggleSettings() {
+            settingsMenu.style.display = settingsMenu.style.display === 'block' ? 'none' : 'block';
+        }
 
-      if (mode === 'albums') {
-        const albums = getFilteredAlbums();
-        albums.forEach(album => {
-          const img = document.createElement('img');
-          img.src = album.cover;
-          img.className = 'draggable-item';
-          img.draggable = true;
-          img.dataset.id = album.id;
-          img.title = album.name;
-          addDragListeners(img);
-          unrankedContainer.appendChild(img);
+        function isMajorAlbum(album) {
+            const name = album.name.toLowerCase();
+            return !name.includes('deluxe') && album.type !== 'single';
+        }
+
+        function initTierList(items, itemType) {
+            tierContainer.innerHTML = '';
+            unrankedContainer.innerHTML = '';
+            tiers.forEach(tier => {
+                const row = document.createElement('div');
+                row.className = 'tier-row';
+                row.dataset.tier = tier;
+                row.ondrop = handleDrop;
+                row.ondragover = e => e.preventDefault();
+
+                const label = document.createElement('div');
+                label.className = 'tier-label';
+                label.textContent = tier;
+
+                row.appendChild(label);
+                tierContainer.appendChild(row);
+            });
+
+            items.forEach(item => {
+                let el;
+                if (itemType === 'album') {
+                    el = document.createElement('img');
+                    el.src = item.cover;
+                    el.title = item.name;
+                    el.className = 'draggable-item';
+                } else {
+                    el = document.createElement('div');
+                    el.className = 'draggable-song';
+                    el.innerHTML = `<img src="${item.albumCover}" alt="${item.name}"><span>${item.name}</span>`;
+                }
+
+                el.draggable = true;
+                el.dataset.id = itemType === 'album' ? item.name : `${item.album}-${item.name}`;
+                el.dataset.type = itemType;
+                el.ondragstart = e => {
+                    e.dataTransfer.setData('text/plain', JSON.stringify({
+                        id: el.dataset.id,
+                        type: itemType,
+                        html: el.outerHTML
+                    }));
+                };
+
+                unrankedContainer.appendChild(el);
+            });
+
+            loadSavedTierList();
+        }
+
+        function setMode(mode) {
+            currentMode = mode;
+            albumSelect.classList.add('hidden');
+            searchBar.classList.add('hidden');
+
+            const albums = artistData.albums.filter(album => {
+                return !filterCheckbox.checked || isMajorAlbum(album);
+            });
+
+            if (mode === 'albums') {
+                initTierList(albums, 'album');
+            } else if (mode === 'albumSongs') {
+                albumSelect.innerHTML = '';
+                albums.forEach(album => {
+                    const btn = document.createElement('div');
+                    btn.className = 'album-button';
+                    btn.dataset.name = album.name;
+                    btn.innerHTML = `<img src="${album.cover}" alt="${album.name}">`;
+                    btn.onclick = () => {
+                        selectedAlbum = album;
+                        initTierList(album.songs.map(s => ({ ...s, album: album.name, albumCover: album.cover })), 'song');
+                    };
+                    albumSelect.appendChild(btn);
+                });
+                albumSelect.classList.remove('hidden');
+                tierContainer.innerHTML = '';
+                unrankedContainer.innerHTML = '';
+            } else if (mode === 'allSongs') {
+                searchBar.classList.remove('hidden');
+                const allSongs = albums.flatMap(album =>
+                    album.songs.map(song => ({ ...song, album: album.name, albumCover: album.cover }))
+                );
+                initTierList(allSongs, 'song');
+            }
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+            const dropZone = e.currentTarget;
+
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = data.html;
+            const draggedEl = tempDiv.firstChild;
+
+            // remove any existing versions
+            document.querySelectorAll(`[data-id="${draggedEl.dataset.id}"]`).forEach(el => el.remove());
+
+            draggedEl.draggable = true;
+            draggedEl.ondragstart = e => {
+                e.dataTransfer.setData('text/plain', JSON.stringify({
+                    id: draggedEl.dataset.id,
+                    type: draggedEl.dataset.type,
+                    html: draggedEl.outerHTML
+                }));
+            };
+            dropZone.appendChild(draggedEl);
+
+            saveTierList();
+        }
+
+        function saveTierList() {
+            const saved = {};
+            tiers.forEach(tier => {
+                const tierRow = tierContainer.querySelector(`[data-tier="${tier}"]`);
+                saved[tier] = Array.from(tierRow.children)
+                    .filter(el => el.dataset && el.dataset.id)
+                    .map(el => el.dataset.id);
+            });
+            const key = `tierList_${artistData.name}_${currentMode}_${selectedAlbum?.name || ''}`;
+            localStorage.setItem(key, JSON.stringify(saved));
+        }
+
+        function loadSavedTierList() {
+            const key = `tierList_${artistData.name}_${currentMode}_${selectedAlbum?.name || ''}`;
+            const saved = JSON.parse(localStorage.getItem(key));
+            if (!saved) return;
+
+            tiers.forEach(tier => {
+                const row = tierContainer.querySelector(`[data-tier="${tier}"]`);
+                saved[tier]?.forEach(id => {
+                    const [album, name] = id.includes('-') ? id.split('-') : [null, id];
+                    const data = id.includes('-')
+                        ? { album: album, name: name, albumCover: artistData.albums.find(a => a.name === album)?.cover }
+                        : { name: id, cover: artistData.albums.find(a => a.name === id)?.cover };
+                    const el = id.includes('-')
+                        ? Object.assign(document.createElement('div'), {
+                            className: 'draggable-song',
+                            innerHTML: `<img src="${data.albumCover}" alt="${data.name}"><span>${data.name}</span>`
+                        })
+                        : Object.assign(document.createElement('img'), {
+                            className: 'draggable-item',
+                            src: data.cover,
+                            title: data.name
+                        });
+
+                    el.draggable = true;
+                    el.dataset.id = id;
+                    el.dataset.type = id.includes('-') ? 'song' : 'album';
+                    el.ondragstart = e => {
+                        e.dataTransfer.setData('text/plain', JSON.stringify({
+                            id: el.dataset.id,
+                            type: el.dataset.type,
+                            html: el.outerHTML
+                        }));
+                    };
+                    row.appendChild(el);
+                });
+            });
+        }
+
+        // Search for "All Songs" mode
+        searchInput.addEventListener('input', () => {
+            const term = searchInput.value.toLowerCase();
+            document.querySelectorAll('.draggable-song').forEach(el => {
+                el.style.display = el.textContent.toLowerCase().includes(term) ? 'inline-block' : 'none';
+            });
         });
-      }
 
-      if (mode === 'albumSongs') {
-        albumSelect.classList.remove('hidden');
-        const albums = getFilteredAlbums();
-        albumSelect.innerHTML = '';
-        albums.forEach(album => {
-          const btn = document.createElement('div');
-          btn.className = 'album-button';
-          btn.dataset.name = album.name;
-          btn.innerHTML = `<img src="${album.cover}">`;
-          btn.onclick = () => {
-            selectedAlbum = album;
-            loadSongs(album.songs);
-          };
-          albumSelect.appendChild(btn);
+        // Reload current mode on toggle
+        filterCheckbox.addEventListener('change', () => {
+            setMode(currentMode);
         });
-      }
 
-      if (mode === 'allSongs') {
-        searchBar.classList.remove('hidden');
-        const allSongs = getFilteredAlbums().flatMap(a => a.songs.map(s => ({...s, album: a.name, cover: a.cover})));
-        loadSongs(allSongs);
-      }
-
-      loadSavedTierList();
-    }
-
-    function getFilteredAlbums() {
-      const filterDeluxe = filterDeluxeCheckbox.checked;
-      return artistData.albums.filter(a => {
-        if (!a.songs || a.songs.length === 0) return false;
-        if (filterDeluxe && /deluxe|edition/i.test(a.name)) return false;
-        return true;
-      });
-    }
-
-    function loadSongs(songs) {
-      unrankedContainer.innerHTML = '';
-      songs.forEach(song => {
-        const div = document.createElement('div');
-        div.className = 'draggable-song';
-        div.draggable = true;
-        div.dataset.id = song.id;
-        div.innerHTML = `<img src="${song.cover}"><span>${song.name}</span>`;
-        addDragListeners(div);
-        unrankedContainer.appendChild(div);
-      });
-    }
-
-    function renderTierList() {
-      tierContainer.innerHTML = '';
-      tiers.forEach(tier => {
-        const row = document.createElement('div');
-        row.className = 'tier-row';
-        row.dataset.tier = tier;
-
-        const label = document.createElement('div');
-        label.className = 'tier-label';
-        label.textContent = tier;
-
-        row.appendChild(label);
-        row.ondragover = (e) => e.preventDefault();
-        row.ondrop = (e) => {
-          const id = e.dataTransfer.getData('text/plain');
-          const item = document.querySelector(`[data-id="${id}"]`);
-          row.appendChild(item);
-          saveTierList();
-        };
-
-        tierContainer.appendChild(row);
-      });
-
-      unrankedContainer.ondragover = (e) => e.preventDefault();
-      unrankedContainer.ondrop = (e) => {
-        const id = e.dataTransfer.getData('text/plain');
-        const item = document.querySelector(`[data-id="${id}"]`);
-        unrankedContainer.appendChild(item);
-        saveTierList();
-      };
-    }
-
-    function addDragListeners(el) {
-      el.ondragstart = (e) => e.dataTransfer.setData('text/plain', el.dataset.id);
-    }
-
-    function saveTierList() {
-      const data = {};
-      tiers.forEach(tier => {
-        const row = document.querySelector(`.tier-row[data-tier="${tier}"]`);
-        data[tier] = Array.from(row.children).slice(1).map(item => item.dataset.id);
-      });
-      const unranked = Array.from(unrankedContainer.children).map(item => item.dataset.id);
-      const saveKey = `${artistData.name}_${currentMode}${selectedAlbum ? '_' + selectedAlbum.id : ''}`;
-      localStorage.setItem(saveKey, JSON.stringify({tiers: data, unranked}));
-    }
-
-    function loadSavedTierList() {
-      const saveKey = `${artistData.name}_${currentMode}${selectedAlbum ? '_' + selectedAlbum.id : ''}`;
-      const saved = JSON.parse(localStorage.getItem(saveKey));
-      if (!saved) return;
-
-      renderTierList();
-
-      const allItems = {};
-      if (currentMode === 'albums') {
-        getFilteredAlbums().forEach(a => {
-          allItems[a.id] = a;
-        });
-      } else {
-        const songs = currentMode === 'allSongs'
-          ? getFilteredAlbums().flatMap(a => a.songs.map(s => ({...s, album: a.name, cover: a.cover})))
-          : selectedAlbum.songs.map(s => ({...s, album: selectedAlbum.name, cover: selectedAlbum.cover}));
-        songs.forEach(s => {
-          allItems[s.id] = s;
-        });
-      }
-
-      for (const tier of tiers) {
-        const row = document.querySelector(`.tier-row[data-tier="${tier}"]`);
-        saved.tiers[tier].forEach(id => {
-          const data = allItems[id];
-          if (!data) return;
-          const item = currentMode === 'albums'
-            ? createAlbumElement(data)
-            : createSongElement(data);
-          row.appendChild(item);
-        });
-      }
-
-      saved.unranked.forEach(id => {
-        const data = allItems[id];
-        if (!data) return;
-        const item = currentMode === 'albums'
-          ? createAlbumElement(data)
-          : createSongElement(data);
-        unrankedContainer.appendChild(item);
-      });
-    }
-
-    function createAlbumElement(album) {
-      const img = document.createElement('img');
-      img.src = album.cover;
-      img.className = 'draggable-item';
-      img.draggable = true;
-      img.dataset.id = album.id;
-      img.title = album.name;
-      addDragListeners(img);
-      return img;
-    }
-
-    function createSongElement(song) {
-      const div = document.createElement('div');
-      div.className = 'draggable-song';
-      div.draggable = true;
-      div.dataset.id = song.id;
-      div.innerHTML = `<img src="${song.cover}"><span>${song.name}</span>`;
-      addDragListeners(div);
-      return div;
-    }
-
-    searchInput.addEventListener('input', () => {
-      const query = searchInput.value.toLowerCase();
-      const items = unrankedContainer.querySelectorAll('.draggable-song');
-      items.forEach(el => {
-        const title = el.querySelector('span').textContent.toLowerCase();
-        el.style.display = title.includes(query) ? '' : 'none';
-      });
-    });
-
-    // Initialize
-    setMode('albums');
-  </script>
+        setMode('albums');
+    </script>
 </body>
 </html>
