@@ -1,80 +1,170 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Rankings</title>
-    <style>
-        /* Basic styling */
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            background-color: #f4f4f4;
-        }
-        .rankings {
-            display: flex;
-            flex-wrap: wrap;
-        }
-        .ranking {
-            width: 200px;
-            margin: 10px;
-            text-align: center;
-        }
-        .ranking img {
-            width: 100%;
-            height: 200px;
-            object-fit: cover;
-        }
-        .ranking h3 {
-            margin-top: 10px;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Rankings</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #fafafa;
+      padding: 20px;
+    }
+
+    h1, h2 {
+      text-align: center;
+    }
+
+    .section {
+      margin-bottom: 40px;
+    }
+
+    .tier-section {
+      margin-bottom: 20px;
+    }
+
+    .tier-row {
+      margin: 10px 0;
+    }
+
+    .tier-label {
+      font-weight: bold;
+      margin-right: 10px;
+    }
+
+    .item-list {
+      display: inline-block;
+    }
+
+    .item {
+      display: inline-block;
+      margin: 3px 6px;
+      padding: 4px 8px;
+      background: #ddd;
+      border-radius: 4px;
+    }
+
+    .rating-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .rating-table th, .rating-table td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: left;
+    }
+
+    .rating-table th {
+      background: #eee;
+    }
+  </style>
 </head>
 <body>
-    <h1>My Rankings</h1>
+  <h1>My Rankings</h1>
 
-    <h2>Rated Albums</h2>
-    <div id="ratedAlbums" class="rankings"></div>
+  <div class="section" id="tierListsSection">
+    <h2>Tier Lists</h2>
+    <!-- Tier lists will be inserted here -->
+  </div>
 
-    <h2>Rated Songs</h2>
-    <div id="ratedSongs" class="rankings"></div>
+  <div class="section" id="albumRatingsSection">
+    <h2>Album Ratings</h2>
+    <table class="rating-table" id="albumRatingsTable">
+      <thead>
+        <tr><th>Album</th><th>Rating</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
 
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            const artistData = JSON.parse(localStorage.getItem("currentArtistData"));
-            if (!artistData) {
-                alert("No artist data found. Please go back and select an artist.");
-                return;
-            }
+  <div class="section" id="songRatingsSection">
+    <h2>Song Ratings</h2>
+    <table class="rating-table" id="songRatingsTable">
+      <thead>
+        <tr><th>Song</th><th>Album</th><th>Rating</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
 
-            const ratedAlbumsContainer = document.getElementById("ratedAlbums");
-            const ratedSongsContainer = document.getElementById("ratedSongs");
+  <script>
+    const artistData = JSON.parse(localStorage.getItem('currentArtistData'));
+    if (!artistData) {
+      alert("No artist data found.");
+      throw new Error("Missing artist data");
+    }
 
-            // Load rated albums
-            const ratingsKey = `ratings_${artistData.id}`;
-            const ratings = JSON.parse(localStorage.getItem(ratingsKey) || "{}");
+    const artistName = artistData.name;
+    const tierListsSection = document.getElementById('tierListsSection');
+    const albumRatingsTable = document.getElementById('albumRatingsTable').querySelector('tbody');
+    const songRatingsTable = document.getElementById('songRatingsTable').querySelector('tbody');
 
-            Object.keys(ratings).forEach(albumName => {
-                const albumData = ratings[albumName];
-                const albumDiv = document.createElement("div");
-                albumDiv.classList.add("ranking");
-                albumDiv.innerHTML = `<img src="${albumData.cover}" alt="${albumName}" />
-                                      <h3>${albumName}</h3>
-                                      <p>Rating: ${albumData.rating}</p>`;
-                ratedAlbumsContainer.appendChild(albumDiv);
+    const modes = ['albums', 'albumSongs', 'allSongs'];
 
-                // Load rated songs
-                Object.keys(albumData.songs).forEach(songName => {
-                    const songData = albumData.songs[songName];
-                    const songDiv = document.createElement("div");
-                    songDiv.classList.add("ranking");
-                    songDiv.innerHTML = `<img src="${songData.album.cover}" alt="${songName}" />
-                                         <h3>${songName}</h3>
-                                         <p>Rating: ${songData.rating}</p>`;
-                    ratedSongsContainer.appendChild(songDiv);
-                });
-            });
+    modes.forEach(mode => {
+      const key = `tierList_${artistName}_${mode}`;
+      const saved = JSON.parse(localStorage.getItem(key));
+      if (!saved) return;
+
+      const section = document.createElement('div');
+      section.className = 'tier-section';
+
+      const title = document.createElement('h3');
+      title.textContent = mode === 'albums' ? 'Album Tier List' :
+                          mode === 'albumSongs' ? 'Per-Album Song Tier Lists' : 'All Songs Tier List';
+      section.appendChild(title);
+
+      Object.entries(saved).forEach(([tier, items]) => {
+        const row = document.createElement('div');
+        row.className = 'tier-row';
+
+        const label = document.createElement('span');
+        label.className = 'tier-label';
+        label.textContent = `${tier} Tier:`;
+        row.appendChild(label);
+
+        const list = document.createElement('span');
+        list.className = 'item-list';
+
+        items.forEach(id => {
+          const item = document.createElement('span');
+          item.className = 'item';
+
+          if (mode === 'albums') {
+            item.textContent = id;
+          } else {
+            const parts = id.split('-');
+            const song = parts[1];
+            const album = parts[0];
+            item.textContent = `${song} (${album})`;
+          }
+
+          list.appendChild(item);
         });
-    </script>
+
+        row.appendChild(list);
+        section.appendChild(row);
+      });
+
+      tierListsSection.appendChild(section);
+    });
+
+    const ratings = JSON.parse(localStorage.getItem(`ratings_${artistName}`)) || {};
+
+    // Album Ratings
+    (ratings.albums || []).forEach(entry => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${entry.album}</td><td>${entry.rating}/10</td>`;
+      albumRatingsTable.appendChild(tr);
+    });
+
+    // Song Ratings
+    (ratings.songs || []).forEach(entry => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${entry.song}</td><td>${entry.album}</td><td>${entry.rating}/10</td>`;
+      songRatingsTable.appendChild(tr);
+    });
+  </script>
 </body>
 </html>
